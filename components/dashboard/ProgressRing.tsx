@@ -1,0 +1,54 @@
+"use client";
+
+import React, { useEffect, useState } from 'react';
+
+export default function ProgressRing({ percentage }: { percentage: number }) {
+  const [offset, setOffset] = useState(0);
+  
+  const size = 200;
+  const strokeWidth = 16;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+
+  useEffect(() => {
+    const progressOffset = circumference - (percentage / 100) * circumference;
+    setOffset(progressOffset);
+  }, [percentage, circumference]);
+
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center">
+      <h2 className="text-lg font-bold text-slate-800 dark:text-white w-full text-center mb-6">Today's Progress</h2>
+      
+      <div className="relative flex items-center justify-center">
+        {/* Background Track */}
+        <svg width={size} height={size} className="transform -rotate-90">
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="transparent"
+            stroke="currentColor"
+            strokeWidth={strokeWidth}
+            className="text-slate-100 dark:text-slate-800"
+          />
+          {/* Progress Indicator */}
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="transparent"
+            stroke="currentColor"
+            strokeWidth={strokeWidth}
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            strokeLinecap="round"
+            className="text-indigo-500 transition-all duration-1000 ease-out"
+          />
+        </svg>
+        <div className="absolute flex flex-col items-center justify-center">
+          <span className="text-4xl font-black text-slate-800 dark:text-white">{percentage}%</span>
+        </div>
+      </div>
+    </div>
+  );
+}
