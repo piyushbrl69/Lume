@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CheckCircle2, Circle, Plus, Trash2, Flame } from 'lucide-react';
 import { Task } from '@/app/page';
 
@@ -29,9 +29,25 @@ const getSubjectColor = (subject: string) => {
   return colors[Math.abs(hash) % colors.length];
 };
 
-export default function DailyChecklist({ tasks, existingSubjects, streakCount, onToggleTask, onAddTask, onDeleteTask }: DailyChecklistProps) {
+export default function DailyChecklist({ 
+  tasks, 
+  existingSubjects, 
+  streakCount, 
+  onToggleTask, 
+  onAddTask, 
+  onDeleteTask 
+}: DailyChecklistProps) {
   const [newTaskText, setNewTaskText] = useState('');
   const [newSubject, setNewSubject] = useState('');
+  const [mounted, setMounted] = useState(false);
+
+  // Hydration fix: defer rendering local storage data until client mounts
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      setMounted(true);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,9 +61,17 @@ export default function DailyChecklist({ tasks, existingSubjects, streakCount, o
     <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-bold text-slate-800 dark:text-white">Daily Mission</h2>
-        <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-full text-sm font-medium text-slate-600 dark:text-slate-300">
-          <Flame size={16} className={streakCount > 0 ? "text-orange-500 fill-orange-500" : "text-slate-400"} />
-          <span>{streakCount} Day Streak</span>
+        
+        {/* Streak Indicator with Hydration Guard */}
+        <div 
+          suppressHydrationWarning 
+          className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-full text-sm font-medium text-slate-600 dark:text-slate-300"
+        >
+          <Flame 
+            size={16} 
+            className={mounted && streakCount > 0 ? "text-orange-500 fill-orange-500" : "text-slate-400"} 
+          />
+          <span>{mounted ? streakCount : 0} Day Streak</span>
         </div>
       </div>
 

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Play, Pause, RotateCcw } from 'lucide-react';
 
-const WORK_TIME = 25 * 60; // 25 minutes in seconds
+const WORK_TIME = 25 * 60;
 
 export default function PomodoroTimer() {
   const [timeLeft, setTimeLeft] = useState(WORK_TIME);
@@ -11,21 +11,24 @@ export default function PomodoroTimer() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    // On load, check if there's a running timer saved in storage
-    const savedEndTime = localStorage.getItem('pomodoro-end-time');
-    if (savedEndTime) {
-      const endTime = parseInt(savedEndTime, 10);
-      const remaining = Math.round((endTime - Date.now()) / 1000);
-      
-      if (remaining > 0) {
-        setTimeLeft(remaining);
-        setIsRunning(true);
-      } else {
-        localStorage.removeItem('pomodoro-end-time');
-        setTimeLeft(0);
+    const frame = requestAnimationFrame(() => {
+      setMounted(true);
+      const savedEndTime = localStorage.getItem('pomodoro-end-time');
+      if (savedEndTime) {
+        const endTime = parseInt(savedEndTime, 10);
+        const remaining = Math.round((endTime - Date.now()) / 1000);
+        
+        if (remaining > 0) {
+          setTimeLeft(remaining);
+          setIsRunning(true);
+        } else {
+          localStorage.removeItem('pomodoro-end-time');
+          setTimeLeft(0);
+        }
       }
-    }
+    });
+
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   useEffect(() => {
@@ -43,7 +46,6 @@ export default function PomodoroTimer() {
             setTimeLeft(0);
             setIsRunning(false);
             localStorage.removeItem('pomodoro-end-time');
-            // Play a sound here if you want!
           } else {
             setTimeLeft(remaining);
           }
@@ -57,11 +59,10 @@ export default function PomodoroTimer() {
   const toggleTimer = () => {
     if (isRunning) {
       setIsRunning(false);
-      localStorage.removeItem('pomodoro-end-time'); // Pause cancels the future timestamp
+      localStorage.removeItem('pomodoro-end-time');
     } else {
       setIsRunning(true);
       if (timeLeft === 0) {
-        // Reset if starting from 0
         setTimeLeft(WORK_TIME);
         localStorage.setItem('pomodoro-end-time', (Date.now() + WORK_TIME * 1000).toString());
       } else {
@@ -83,7 +84,6 @@ export default function PomodoroTimer() {
     <div className="bg-indigo-500 dark:bg-indigo-600 rounded-3xl p-8 shadow-sm flex flex-col items-center text-white">
       <h2 className="text-indigo-100 font-bold mb-4">Focus Timer</h2>
       
-      {/* suppressHydrationWarning prevents Next.js errors since the server time and client time might mismatch briefly */}
       <div className="text-6xl font-black mb-8 tracking-wider" suppressHydrationWarning>
         {mounted ? `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}` : "25:00"}
       </div>

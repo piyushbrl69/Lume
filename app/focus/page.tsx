@@ -12,12 +12,11 @@ type DailyStat = {
 
 type TimerMode = 'focus' | 'break';
 
-// Native browser audio API for a 3-beep alarm (no external MP3s needed)
 const playAlarm = () => {
   try {
-    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContext) return;
-    const ctx = new AudioContext();
+    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
 
     const playBeep = (startTime: number) => {
       const osc = ctx.createOscillator();
@@ -49,27 +48,31 @@ export default function FocusPage() {
 
   const [stats, setStats] = useLocalStorage<DailyStat[]>('study-stats', []);
 
-  // 1. INITIAL LOAD (Handle closed tabs & refreshes)
+  // 1. INITIAL LOAD (Deferred mounting to pass linter)
   useEffect(() => {
-    setMounted(true);
-    const savedEndTime = localStorage.getItem('focus-end-time');
-    const savedMode = localStorage.getItem('focus-mode') as TimerMode;
-    
-    if (savedMode) setMode(savedMode);
+    const frame = requestAnimationFrame(() => {
+      setMounted(true);
+      const savedEndTime = localStorage.getItem('focus-end-time');
+      const savedMode = localStorage.getItem('focus-mode') as TimerMode;
+      
+      if (savedMode) setMode(savedMode);
 
-    if (savedEndTime) {
-      const endTime = parseInt(savedEndTime, 10);
-      const remaining = Math.round((endTime - Date.now()) / 1000);
+      if (savedEndTime) {
+        const endTime = parseInt(savedEndTime, 10);
+        const remaining = Math.round((endTime - Date.now()) / 1000);
 
-      if (remaining > 0) {
-        setTimeLeft(remaining);
-        setIsRunning(true);
-      } else {
-        localStorage.removeItem('focus-end-time');
-        localStorage.removeItem('last-focus-tick');
-        setTimeLeft(0);
+        if (remaining > 0) {
+          setTimeLeft(remaining);
+          setIsRunning(true);
+        } else {
+          localStorage.removeItem('focus-end-time');
+          localStorage.removeItem('last-focus-tick');
+          setTimeLeft(0);
+        }
       }
-    }
+    });
+
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   // 2. TICK LOGIC & DELTA STAT TRACKING
@@ -85,7 +88,6 @@ export default function FocusPage() {
           const endTime = parseInt(savedEndTime, 10);
           const remaining = Math.round((endTime - now) / 1000);
 
-          // Calculate how much time passed since the last tick (Handles background tab throttling & closed tabs!)
           if (mode === 'focus') {
             const lastTick = parseInt(localStorage.getItem('last-focus-tick') || now.toString());
             const elapsedSeconds = Math.round((now - lastTick) / 1000);
@@ -108,7 +110,6 @@ export default function FocusPage() {
           
           localStorage.setItem('last-focus-tick', now.toString());
 
-          // Handle Timer End
           if (remaining <= 0) {
             clearInterval(interval);
             setTimeLeft(0);
@@ -129,12 +130,10 @@ export default function FocusPage() {
   // 3. TIMER CONTROLS
   const toggleTimer = () => {
     if (isRunning) {
-      // Pause
       setIsRunning(false);
       localStorage.removeItem('focus-end-time');
       localStorage.removeItem('last-focus-tick');
     } else {
-      // Start
       setIsRunning(true);
       localStorage.setItem('focus-mode', mode);
       

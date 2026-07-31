@@ -5,6 +5,13 @@ import Flashcard, { FlashcardData } from '@/components/flashcards/Flashcard';
 import { Plus, BookOpen, Settings, Filter, CheckCircle2 } from 'lucide-react';
 import { format, isSameDay, addDays, parseISO, isBefore } from 'date-fns';
 
+interface VocabSyncEntry {
+  id: string;
+  term: string;
+  meaning: string;
+  dateAdded: string;
+}
+
 export default function FlashcardsPage() {
   const [deck, setDeck] = useState<FlashcardData[]>([]);
   const [studyQueue, setStudyQueue] = useState<FlashcardData[]>([]);
@@ -18,37 +25,7 @@ export default function FlashcardsPage() {
   const [newFront, setNewFront] = useState('');
   const [newBack, setNewBack] = useState('');
 
-  // 1. INITIALIZE DATA & SYNC VOCAB
-  useEffect(() => {
-    // Load existing deck
-    const savedDeck = localStorage.getItem('flashcard-deck');
-    let currentDeck: FlashcardData[] = savedDeck ? JSON.parse(savedDeck) : [];
-
-    // Auto-sync Vocabulary from localStorage
-    const savedVocab = localStorage.getItem('vocab-storage'); // Change key if your vocab hook uses a different one
-    if (savedVocab) {
-      const vocabList = JSON.parse(savedVocab);
-      vocabList.forEach((v: any) => {
-        // Only add if it doesn't already exist in the deck
-        if (!currentDeck.find(card => card.front === v.term)) {
-          currentDeck.push({
-            id: `vocab-${v.id}`,
-            front: v.term,
-            back: v.meaning,
-            source: 'vocab',
-            dateAdded: v.dateAdded,
-            nextReviewDate: new Date().toISOString(), // Due immediately
-            lastRating: null
-          });
-        }
-      });
-    }
-
-    setDeck(currentDeck);
-    generateStudyQueue(currentDeck, 'all');
-  }, []);
-
-  // 2. GENERATE STUDY QUEUE BASED ON FILTER & DUE DATE
+  // 1. GENERATE STUDY QUEUE (Declared first so useEffect can use it)
   const generateStudyQueue = (currentDeck: FlashcardData[], filter: string) => {
     const today = new Date();
     let dueCards = currentDeck.filter(card => 
@@ -66,6 +43,40 @@ export default function FlashcardsPage() {
     setStudyQueue(dueCards);
     setInitialQueueSize(dueCards.length);
   };
+
+  // 2. INITIALIZE DATA & SYNC VOCAB
+  useEffect(() => {
+    // Load existing deck
+    const savedDeck = localStorage.getItem('flashcard-deck');
+    const currentDeck: FlashcardData[] = savedDeck ? JSON.parse(savedDeck) : [];
+
+    // Auto-sync Vocabulary from localStorage
+    const savedVocab = localStorage.getItem('vocab-storage');
+    if (savedVocab) {
+      const vocabList: VocabSyncEntry[] = JSON.parse(savedVocab);
+      vocabList.forEach((v) => {
+        // Only add if it doesn't already exist in the deck
+        if (!currentDeck.find(card => card.front === v.term)) {
+          currentDeck.push({
+            id: `vocab-${v.id}`,
+            front: v.term,
+            back: v.meaning,
+            source: 'vocab',
+            dateAdded: v.dateAdded,
+            nextReviewDate: new Date().toISOString(), // Due immediately
+            lastRating: null
+          });
+        }
+      });
+    }
+
+    const frame = requestAnimationFrame(() => {
+      setDeck(currentDeck);
+      generateStudyQueue(currentDeck, 'all');
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   // Handle Filter Change
   const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -195,7 +206,7 @@ export default function FlashcardsPage() {
           {studyQueue.length > 0 ? (
             <div className="w-full space-y-8">
               <Flashcard 
-                key={studyQueue[0].id} // Force re-mount for fresh animation on next card
+                key={studyQueue[0].id} 
                 card={studyQueue[0]} 
                 onRate={handleRateCard} 
               />
@@ -203,7 +214,7 @@ export default function FlashcardsPage() {
           ) : (
             <div className="text-center bg-white dark:bg-slate-900 p-12 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm max-w-lg w-full mt-8">
               <div className="flex justify-center mb-4 text-emerald-500"><CheckCircle2 size={48} /></div>
-              <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">You're all caught up!</h2>
+              <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">You&apos;re all caught up!</h2>
               <p className="text-slate-500 mb-8">No cards due right now based on your selected filter. Take a break!</p>
               <button 
                 onClick={() => generateStudyQueue(deck, dateFilter)}

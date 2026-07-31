@@ -12,7 +12,6 @@ interface VocabListProps {
 
 export default function VocabList({ words, onPlayAudio }: VocabListProps) {
   const groupedWords = words.reduce((groups, word) => {
-    // FIX: Parse the ISO string back into a date object before formatting
     const dateKey = format(parseISO(word.dateAdded), 'MMM dd, yyyy');
     
     if (!groups[dateKey]) {
@@ -46,7 +45,7 @@ export default function VocabList({ words, onPlayAudio }: VocabListProps) {
                   <h4 className="text-xl font-bold text-slate-800 dark:text-white mb-1">{word.term}</h4>
                   <p className="text-slate-600 dark:text-slate-300 font-medium mb-2">{word.meaning}</p>
                   {word.example && (
-                    <p className="text-slate-500 dark:text-slate-400 text-sm italic">"{word.example}"</p>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm italic">&quot;{word.example}&quot;</p>
                   )}
                 </div>
                 <button onClick={() => onPlayAudio(word.term)} className="p-3 text-indigo-500 hover:bg-indigo-50 dark:hover:bg-slate-800 rounded-full transition-colors shrink-0 ml-4">

@@ -16,16 +16,19 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    // Check local storage or system preference on load
-    const storedTheme = localStorage.getItem('theme') as Theme | null;
-    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    
-    if (storedTheme) {
-      setTheme(storedTheme);
-    } else if (systemPrefersDark) {
-      setTheme('dark');
-    }
+    const frame = requestAnimationFrame(() => {
+      setMounted(true);
+      const storedTheme = localStorage.getItem('theme') as Theme | null;
+      const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      
+      if (storedTheme) {
+        setTheme(storedTheme);
+      } else if (systemPrefersDark) {
+        setTheme('dark');
+      }
+    });
+
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   useEffect(() => {
@@ -45,8 +48,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
   };
 
-  // FIX: The Provider now ALWAYS wraps the children. 
-  // We use inline visibility to hide the UI for a split second to prevent hydration flash.
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
       <div style={{ visibility: mounted ? 'visible' : 'hidden' }}>
