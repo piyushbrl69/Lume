@@ -1,22 +1,35 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import DailyChecklist from '@/components/dashboard/DailyChecklist';
 import ProgressRing from '@/components/dashboard/ProgressRing';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { format } from 'date-fns';
+
+export type TaskFrequency = 'once' | 'daily' | 'weekdays' | 'weekends';
 
 export type Task = {
   id: string;
   text: string;
   subject: string;
   completed: boolean;
-  date: string; // To track daily resets
+  date: string; // YYYY-MM-DD
+  frequency?: TaskFrequency;
+};
+
+export type RecurringTaskTemplate = {
+  id: string;
+  text: string;
+  subject: string;
+  frequency: TaskFrequency;
 };
 
 export default function Home() {
   const [tasks, setTasks] = useLocalStorage<Task[]>('hub-tasks', []);
   
+  // Store recurring templates separately so they persist across days
+  const [recurringTemplates, setRecurringTemplates] = useLocalStorage<RecurringTaskTemplate[]>('hub-recurring-templates', []);
+
   // Refactored Streak Tracking
   const [streakInfo, setStreakInfo] = useLocalStorage('hub-streak', {
     count: 0,
@@ -24,6 +37,43 @@ export default function Home() {
   });
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
+
+  // --- Auto-generate today's recurring tasks on load ---
+  useEffect(() => {
+    if (!recurringTemplates || recurringTemplates.length === 0) return;
+
+    const dayOfWeek = new Date().getDay(); // 0 = Sun, 1-5 = Mon-Fri, 6 = Sat
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+    // Filter templates active for today
+    const activeTemplates = recurringTemplates.filter(template => {
+      if (template.frequency === 'daily') return true;
+      if (template.frequency === 'weekdays') return !isWeekend;
+      if (template.frequency === 'weekends') return isWeekend;
+      return false;
+    });
+
+    setTasks(prevTasks => {
+      const todayTasks = prevTasks.filter(t => t.date === todayStr);
+      const existingTaskTexts = new Set(todayTasks.map(t => t.text.toLowerCase()));
+
+      // Only generate tasks that don't already exist for today
+      const newTasksForToday: Task[] = activeTemplates
+        .filter(template => !existingTaskTexts.has(template.text.toLowerCase()))
+        .map(template => ({
+          id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          text: template.text,
+          subject: template.subject,
+          completed: false,
+          date: todayStr,
+          frequency: template.frequency,
+        }));
+
+      if (newTasksForToday.length === 0) return prevTasks;
+      return [...prevTasks, ...newTasksForToday];
+    });
+  }, [recurringTemplates, todayStr, setTasks]);
+
   const todaysTasks = tasks.filter(t => t.date === todayStr);
 
   const toggleTask = (id: string) => {
@@ -45,23 +95,45 @@ export default function Home() {
     }
   };
 
-  const addTask = (text: string, subject: string) => {
+  const addTask = (text: string, subject: string, frequency: TaskFrequency = 'once') => {
     const newTask: Task = {
       id: Date.now().toString(),
       text,
       subject,
       completed: false,
-      date: todayStr, // Lock task to today
+      date: todayStr,
+      frequency,
     };
-    setTasks([...tasks, newTask]);
+
+    // If it's a recurring task, save it to templates so it persists for future days
+    if (frequency !== 'once') {
+      const newTemplate: RecurringTaskTemplate = {
+        id: Date.now().toString(),
+        text,
+        subject,
+        frequency,
+      };
+      setRecurringTemplates(prev => [...prev, newTemplate]);
+    }
+
+    setTasks(prev => [...prev, newTask]);
   };
 
   const deleteTask = (id: string) => {
+    const taskToDelete = tasks.find(t => t.id === id);
+    
+    // If it was a recurring task, remove it from templates as well
+    if (taskToDelete?.frequency && taskToDelete.frequency !== 'once') {
+      setRecurringTemplates(prev => 
+        prev.filter(t => t.text.toLowerCase() !== taskToDelete.text.toLowerCase())
+      );
+    }
+
     setTasks(tasks.filter(task => task.id !== id));
   };
 
   const uniqueSubjects = Array.from(new Set(tasks.map(t => t.subject)));
-  if (uniqueSubjects.length === 0) uniqueSubjects.push('General', 'Math', 'Science');
+  if (uniqueSubjects.length === 0) uniqueSubjects.push('General', 'Math', 'Science', 'Aptitude', 'Coding', 'English', 'History', 'Geography');
 
   const completedTasks = todaysTasks.filter(t => t.completed).length;
   const totalTasks = todaysTasks.length;
@@ -74,11 +146,10 @@ export default function Home() {
         <p className="text-slate-500 mt-2">Your daily command center.</p>
       </header>
 
-      {/* Cleaned up 2-column Grid layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         <div className="lg:col-span-2">
           <DailyChecklist 
-            tasks={todaysTasks} // Only pass today's tasks
+            tasks={todaysTasks} 
             existingSubjects={uniqueSubjects}
             streakCount={streakInfo.count}
             onToggleTask={toggleTask} 

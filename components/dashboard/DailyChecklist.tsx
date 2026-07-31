@@ -1,15 +1,15 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { CheckCircle2, Circle, Plus, Trash2, Flame } from 'lucide-react';
-import { Task } from '@/app/page';
+import { CheckCircle2, Circle, Plus, Trash2, Flame, Calendar, Repeat } from 'lucide-react';
+import { Task, TaskFrequency } from '@/app/page';
 
 interface DailyChecklistProps {
   tasks: Task[];
   existingSubjects: string[];
   streakCount: number;
   onToggleTask: (id: string) => void;
-  onAddTask: (text: string, subject: string) => void;
+  onAddTask: (text: string, subject: string, frequency: TaskFrequency) => void;
   onDeleteTask: (id: string) => void;
 }
 
@@ -39,9 +39,10 @@ export default function DailyChecklist({
 }: DailyChecklistProps) {
   const [newTaskText, setNewTaskText] = useState('');
   const [newSubject, setNewSubject] = useState('');
+  const [frequency, setFrequency] = useState<TaskFrequency>('once');
   const [mounted, setMounted] = useState(false);
 
-  // Hydration fix: defer rendering local storage data until client mounts
+  // Hydration fix
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
       setMounted(true);
@@ -53,7 +54,7 @@ export default function DailyChecklist({
     e.preventDefault();
     if (!newTaskText.trim()) return;
     const subjectToUse = newSubject.trim() || 'General';
-    onAddTask(newTaskText, subjectToUse);
+    onAddTask(newTaskText, subjectToUse, frequency);
     setNewTaskText('');
   };
 
@@ -62,7 +63,7 @@ export default function DailyChecklist({
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-bold text-slate-800 dark:text-white">Daily Mission</h2>
         
-        {/* Streak Indicator with Hydration Guard */}
+        {/* Streak Indicator */}
         <div 
           suppressHydrationWarning 
           className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-full text-sm font-medium text-slate-600 dark:text-slate-300"
@@ -89,13 +90,25 @@ export default function DailyChecklist({
           placeholder="Subject..."
           value={newSubject}
           onChange={(e) => setNewSubject(e.target.value)}
-          className="w-full sm:w-32 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white text-sm"
+          className="w-full sm:w-28 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white text-sm"
         />
         <datalist id="subject-list">
           {existingSubjects.map(sub => (
             <option key={sub} value={sub} />
           ))}
         </datalist>
+
+        {/* Frequency Select */}
+        <select
+          value={frequency}
+          onChange={(e) => setFrequency(e.target.value as TaskFrequency)}
+          className="w-full sm:w-32 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700 dark:text-slate-300 text-sm font-medium cursor-pointer"
+        >
+          <option value="once">Once</option>
+          <option value="daily">Daily</option>
+          <option value="weekdays">Weekdays</option>
+          <option value="weekends">Weekends</option>
+        </select>
 
         <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white p-2.5 rounded-xl transition-colors shrink-0 flex justify-center">
           <Plus size={20} />
@@ -121,14 +134,26 @@ export default function DailyChecklist({
                   {task.completed ? <CheckCircle2 size={24} /> : <Circle size={24} />}
                 </button>
                 <div>
-                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md mb-1 inline-block ${getSubjectColor(task.subject)}`}>
-                    {task.subject}
-                  </span>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md inline-block ${getSubjectColor(task.subject)}`}>
+                      {task.subject}
+                    </span>
+
+                    {/* Schedule Badge */}
+                    {task.frequency && task.frequency !== 'once' && (
+                      <span className="flex items-center gap-1 text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 px-2 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-900/50 capitalize">
+                        <Repeat size={10} />
+                        {task.frequency}
+                      </span>
+                    )}
+                  </div>
+
                   <p className={`font-medium text-sm sm:text-base ${task.completed ? 'text-slate-500 line-through' : 'text-slate-800 dark:text-slate-200'}`}>
                     {task.text}
                   </p>
                 </div>
               </div>
+
               <button 
                 onClick={(e) => { e.stopPropagation(); onDeleteTask(task.id); }}
                 className="text-slate-400 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity p-2"
