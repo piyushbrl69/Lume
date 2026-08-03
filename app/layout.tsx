@@ -7,8 +7,12 @@ import { ThemeProvider } from "@/components/ui/ThemeProvider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Ultimate Study WebApp",
-  description: "Rigorous daily exam preparation dashboard.",
+
+  title: {
+    default: "Lume | The Ultimate Study App",
+    template: "%s | Lume",
+  },
+  description: "Lume is a comprehensive study app designed to enhance your learning experience. With features like flashcards, vocabulary arsenal, notes, focus timer, and more, Lume helps you study smarter and achieve your academic goals. Whether you're a student or a lifelong learner, Lume provides the tools you need to succeed. Start your learning journey today and unlock your full potential with Lume.",
 };
 
 export default function RootLayout({

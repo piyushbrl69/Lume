@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import Flashcard, { FlashcardData } from '@/components/flashcards/Flashcard';
 import { Plus, BookOpen, Settings, Filter, CheckCircle2 } from 'lucide-react';
 import { format, isSameDay, addDays, parseISO, isBefore } from 'date-fns';
+import type { Metadata } from "next";
+
 
 interface VocabSyncEntry {
   id: string;
