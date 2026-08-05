@@ -27,7 +27,7 @@ export default function VocabForm({ onAddWord }: VocabFormProps) {
   return (
     <form 
       onSubmit={handleSubmit} 
-      className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 grid grid-cols-1 md:grid-cols-2 gap-4"
+      className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 grid grid-cols-1 md:grid-cols-2 gap-4"
     >
       <input 
         type="text" 

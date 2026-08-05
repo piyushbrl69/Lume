@@ -17,7 +17,7 @@ export default function PomodoroTimer() {
       if (savedEndTime) {
         const endTime = parseInt(savedEndTime, 10);
         const remaining = Math.round((endTime - Date.now()) / 1000);
-        
+
         if (remaining > 0) {
           setTimeLeft(remaining);
           setIsRunning(true);
@@ -40,7 +40,7 @@ export default function PomodoroTimer() {
         if (savedEndTime) {
           const endTime = parseInt(savedEndTime, 10);
           const remaining = Math.round((endTime - Date.now()) / 1000);
-          
+
           if (remaining <= 0) {
             clearInterval(interval);
             setTimeLeft(0);
@@ -81,23 +81,23 @@ export default function PomodoroTimer() {
   const seconds = timeLeft % 60;
 
   return (
-    <div className="bg-indigo-500 dark:bg-indigo-600 rounded-3xl p-8 shadow-sm flex flex-col items-center text-white">
-      <h2 className="text-indigo-100 font-bold mb-4">Focus Timer</h2>
-      
-      <div className="text-6xl font-black mb-8 tracking-wider" suppressHydrationWarning>
+    <div className="bg-indigo-500 dark:bg-indigo-600 rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col items-center text-white">
+      <h2 className="text-indigo-100 font-bold mb-4 text-sm sm:text-base">Focus Timer</h2>
+
+      <div className="text-5xl sm:text-6xl font-black mb-6 sm:mb-8 tracking-wider" suppressHydrationWarning>
         {mounted ? `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}` : "25:00"}
       </div>
 
       <div className="flex gap-4">
-        <button 
+        <button
           onClick={toggleTimer}
-          className="bg-white text-indigo-600 hover:bg-indigo-50 p-4 rounded-2xl transition-transform active:scale-95"
+          className="bg-white text-indigo-600 hover:bg-indigo-50 p-3 sm:p-4 rounded-2xl transition-transform active:scale-95"
         >
           {isRunning ? <Pause size={24} /> : <Play size={24} className="ml-1" />}
         </button>
-        <button 
+        <button
           onClick={resetTimer}
-          className="bg-indigo-400/50 hover:bg-indigo-400/70 text-white p-4 rounded-2xl transition-transform active:scale-95"
+          className="bg-indigo-400/50 hover:bg-indigo-400/70 text-white p-3 sm:p-4 rounded-2xl transition-transform active:scale-95"
         >
           <RotateCcw size={24} />
         </button>

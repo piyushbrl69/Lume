@@ -12,11 +12,11 @@ export default function ProgressRing({ percentage }: { percentage: number }) {
   const offset = circumference - (percentage / 100) * circumference;
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center">
+    <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center">
       <h2 className="text-lg font-bold text-slate-800 dark:text-white w-full text-center mb-6">Today&apos;s Progress</h2>
-      
-      <div className="relative flex items-center justify-center">
-        <svg width={size} height={size} className="transform -rotate-90">
+
+      <div className="relative flex items-center justify-center w-40 h-40 sm:w-48 sm:h-48 md:w-52 md:h-52">
+        <svg viewBox={`0 0 ${size} ${size}`} className="transform -rotate-90 w-full h-full">
           <circle
             cx={size / 2}
             cy={size / 2}
@@ -40,7 +40,7 @@ export default function ProgressRing({ percentage }: { percentage: number }) {
           />
         </svg>
         <div className="absolute flex flex-col items-center justify-center">
-          <span className="text-4xl font-black text-slate-800 dark:text-white">{percentage}%</span>
+          <span className="text-3xl sm:text-4xl font-black text-slate-800 dark:text-white">{percentage}%</span>
         </div>
       </div>
     </div>

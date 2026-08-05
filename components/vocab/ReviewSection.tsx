@@ -22,7 +22,7 @@ export default function ReviewSection({ words, onPlayAudio }: ReviewSectionProps
   if (reviewWords.length === 0) return null;
 
   return (
-    <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 p-6 rounded-3xl shadow-sm mb-8">
+    <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 p-4 sm:p-6 rounded-3xl shadow-sm mb-8">
       <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-bold mb-4 text-lg">
         <Clock size={24} /> Spaced Repetition Review
       </div>

@@ -59,8 +59,8 @@ export default function DailyChecklist({
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
-      <div className="flex justify-between items-center mb-6">
+    <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 shadow-sm border border-slate-100 dark:border-slate-800">
+      <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
         <h2 className="text-xl font-bold text-slate-800 dark:text-white">Daily Mission</h2>
         
         {/* Streak Indicator */}
@@ -156,7 +156,7 @@ export default function DailyChecklist({
 
               <button 
                 onClick={(e) => { e.stopPropagation(); onDeleteTask(task.id); }}
-                className="text-slate-400 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity p-2"
+                className="text-slate-400 hover:text-rose-500 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity p-2"
               >
                 <Trash2 size={18} />
               </button>

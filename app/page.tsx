@@ -26,7 +26,7 @@ export type RecurringTaskTemplate = {
 
 export default function Home() {
   const [tasks, setTasks] = useLocalStorage<Task[]>('hub-tasks', []);
-  
+
   // Store recurring templates separately so they persist across days
   const [recurringTemplates, setRecurringTemplates] = useLocalStorage<RecurringTaskTemplate[]>('hub-recurring-templates', []);
 
@@ -77,7 +77,7 @@ export default function Home() {
   const todaysTasks = tasks.filter(t => t.date === todayStr);
 
   const toggleTask = (id: string) => {
-    const updatedTasks = tasks.map(task => 
+    const updatedTasks = tasks.map(task =>
       task.id === id ? { ...task, completed: !task.completed } : task
     );
     setTasks(updatedTasks);
@@ -121,10 +121,10 @@ export default function Home() {
 
   const deleteTask = (id: string) => {
     const taskToDelete = tasks.find(t => t.id === id);
-    
+
     // If it was a recurring task, remove it from templates as well
     if (taskToDelete?.frequency && taskToDelete.frequency !== 'once') {
-      setRecurringTemplates(prev => 
+      setRecurringTemplates(prev =>
         prev.filter(t => t.text.toLowerCase() !== taskToDelete.text.toLowerCase())
       );
     }
@@ -140,25 +140,25 @@ export default function Home() {
   const progressPercentage = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
 
   return (
-    <main className="p-8 max-w-6xl mx-auto min-h-screen">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-800 dark:text-white">The Hub</h1>
-        <p className="text-slate-500 mt-2">Your daily command center.</p>
+    <main className="p-4 sm:p-6 md:p-8 max-w-6xl mx-auto min-h-screen">
+      <header className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-white">The Hub</h1>
+        <p className="text-slate-500 mt-2 text-sm sm:text-base">Your daily command center.</p>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 items-start">
         <div className="lg:col-span-2">
-          <DailyChecklist 
-            tasks={todaysTasks} 
+          <DailyChecklist
+            tasks={todaysTasks}
             existingSubjects={uniqueSubjects}
             streakCount={streakInfo.count}
-            onToggleTask={toggleTask} 
-            onAddTask={addTask} 
-            onDeleteTask={deleteTask} 
+            onToggleTask={toggleTask}
+            onAddTask={addTask}
+            onDeleteTask={deleteTask}
           />
         </div>
 
-        <div className="lg:col-span-1 sticky top-8">
+        <div className="lg:col-span-1 lg:sticky lg:top-8">
           <ProgressRing percentage={progressPercentage} />
         </div>
       </div>
