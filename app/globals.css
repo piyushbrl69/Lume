@@ -1,0 +1,91 @@
+@import "tailwindcss";
+
+/* Enable manual dark mode toggle via the '.dark' class */
+@variant dark (&:is(.dark *));
+
+/* =========================================
+   GLOBAL SMOOTHNESS & UTILITIES
+   ========================================= */
+
+/* Smoothly transition background/colors when changing themes */
+body {
+  transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1), 
+              color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Premium Text Selection (Highlights text in your primary indigo) */
+::selection {
+  background-color: var(--color-indigo-500);
+  color: #ffffff;
+}
+
+/* Define Custom Animations in Tailwind v4 */
+@theme {
+  --animate-fade-in: fade-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-slide-up: slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-pop: pop 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+
+  @keyframes fade-in {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  
+  @keyframes slide-up {
+    0% { opacity: 0; transform: translateY(16px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  
+  @keyframes pop {
+    0% { opacity: 0; transform: scale(0.95); }
+    40% { transform: scale(1.02); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+}
+
+/* =========================================
+   THEME OVERRIDES
+   Redefines Tailwind's default palette 
+   without needing to change JSX classes!
+   ========================================= */
+
+/* MIDNIGHT MODE (Pure OLED Black & Neon Blue Accent) */
+:root[data-theme="midnight"] {
+  --color-slate-950: #000000;
+  --color-slate-900: #0a0a0a;
+  --color-slate-800: #171717;
+  --color-slate-700: #262626;
+  
+  /* Shift indigo to a brighter neon sky blue for contrast against pitch black */
+  --color-indigo-400: #38bdf8;
+  --color-indigo-500: #0ea5e9;
+  --color-indigo-600: #0284c7;
+  --color-indigo-900: #0c4a6e;
+}
+
+/* SEPIA MODE (Warm Reading Mode) */
+:root[data-theme="sepia"] {
+  /* Warm paper backgrounds */
+  --color-slate-50: #f4ecd8;
+  --color-slate-100: #eaddc5;
+  --color-slate-200: #d0c1a5;
+  
+  /* Earthy borders and secondary text */
+  --color-slate-300: #bba98a;
+  --color-slate-400: #9e8a6a;
+  --color-slate-500: #7d6a4d;
+  
+  /* Deep brown primary text */
+  --color-slate-600: #625139;
+  --color-slate-700: #4f412e;
+  --color-slate-800: #3f3425;
+  --color-slate-900: #332a1e;
+  --color-slate-950: #201a11;
+
+  /* Shift indigo to a warm amber/rust */
+  --color-indigo-50: #f9eadd;
+  --color-indigo-100: #f0d0b5;
+  --color-indigo-400: #c97a4a;
+  --color-indigo-500: #b55f2b;
+  --color-indigo-600: #93451c;
+  --color-indigo-700: #7a3615;
+}
