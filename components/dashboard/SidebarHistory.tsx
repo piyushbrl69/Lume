@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { Task } from '@/app/page';
+import { Task } from '@/app/HomeClient';
 import { CheckCircle2, History } from 'lucide-react';
 import { format, isToday, isYesterday, parseISO } from 'date-fns';
 
