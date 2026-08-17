@@ -8,10 +8,10 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: {
-    default: "Lume | The Ultimate Study App",
+    default: "Lume",
     template: "%s | Lume",
   },
-  description: "Lume is a comprehensive study app designed to enhance your learning experience. With features like flashcards, vocabulary arsenal, notes, focus timer, and more, Lume helps you study smarter and achieve your academic goals.",
+  description: "Lume is a modern, open-source study app designed to help you learn efficiently and effectively. With a focus on spaced repetition, active recall, and personalized learning paths, Lume empowers students to master any subject with ease. Whether you're a high school student, college student, or lifelong learner, Lume provides the tools and resources you need to succeed. Join the Lume community today and take your learning to the next level.",
 };
 
 export default function RootLayout({

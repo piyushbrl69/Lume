@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { CheckCircle2, Circle, Plus, Trash2, Flame, Calendar, Repeat } from 'lucide-react';
-import { Task, TaskFrequency } from '@/app/page';
+import { Task, TaskFrequency } from '@/app/HomeClient';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 
 interface DailyChecklistProps {

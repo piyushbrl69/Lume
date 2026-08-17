@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Sparkles, Menu, X, LayoutDashboard, Library, BookA, 
-  StickyNote, Timer, History, Wrench, Palette 
+  StickyNote, Timer, History, Wrench, Palette, Info, 
 } from 'lucide-react';
 import { useTheme, Theme } from './ThemeProvider';
 
@@ -23,6 +23,7 @@ export default function Sidebar() {
     { name: 'Focus', href: '/focus', icon: <Timer size={20} /> },
     { name: 'History', href: '/history', icon: <History size={20} /> },
     { name: 'Tools', href: '/tools', icon: <Wrench size={20} /> },
+    { name: 'About', href: '/about', icon: <Info size={20} /> },
   ];
 
   const themes: { id: Theme; label: string; swatch: string }[] = [
