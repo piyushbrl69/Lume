@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Filter, StickyNote, Calendar, Paperclip, Image as ImageIcon, FileText, X, ExternalLink, Search, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Trash2, Filter, StickyNote, Calendar, Paperclip, Image as ImageIcon, FileText, X, ExternalLink, Search, ChevronDown, ChevronUp, Pin } from 'lucide-react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { format, parseISO } from 'date-fns';
 import { saveAttachmentBlob, getAttachmentBlob, deleteAttachmentBlob } from '@/lib/db';
@@ -19,6 +19,7 @@ type Note = {
   content: string;
   subject: string;
   dateAdded: string;
+  isPinned?: boolean; // Added pinning property
   attachments?: AttachmentMeta[];
 };
 
@@ -46,11 +47,13 @@ const getSubjectColor = (subject: string) => {
 const NoteCard = ({ 
   note, 
   onDelete, 
+  onTogglePin,
   blobUrls, 
   openAttachment 
 }: { 
   note: Note; 
   onDelete: (id: string) => void;
+  onTogglePin: (id: string) => void;
   blobUrls: Record<string, string>;
   openAttachment: (att: AttachmentMeta) => void;
 }) => {
@@ -58,19 +61,37 @@ const NoteCard = ({
   const isLongContent = note.content && note.content.length > 200;
 
   return (
-    <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col group relative overflow-hidden transition-all duration-300 h-fit">
+    <div className={`bg-white dark:bg-slate-900 p-5 rounded-3xl flex flex-col group relative overflow-hidden transition-all duration-300 h-fit ${
+      note.isPinned 
+        ? 'border-2 border-indigo-300 dark:border-indigo-700 shadow-md ring-4 ring-indigo-50/50 dark:ring-indigo-900/20' 
+        : 'border border-slate-100 dark:border-slate-800 shadow-sm'
+    }`}>
       
       {/* Note Header */}
       <div className="flex justify-between items-start mb-3">
         <span className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg ${getSubjectColor(note.subject)}`}>
           {note.subject}
         </span>
-        <button 
-          onClick={() => onDelete(note.id)}
-          className="text-slate-400 hover:text-rose-500 bg-slate-50 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/50 p-2 rounded-xl transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100"
-        >
-          <Trash2 size={16} />
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button 
+            onClick={() => onTogglePin(note.id)}
+            className={`p-2 rounded-xl transition-all ${
+              note.isPinned 
+                ? 'text-indigo-500 bg-indigo-50 dark:bg-indigo-900/40 opacity-100' 
+                : 'text-slate-400 hover:text-indigo-500 bg-slate-50 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/40 opacity-100 md:opacity-0 md:group-hover:opacity-100'
+            }`}
+            title={note.isPinned ? "Unpin Note" : "Pin Note"}
+          >
+            <Pin size={16} className={note.isPinned ? "fill-current" : ""} />
+          </button>
+          <button 
+            onClick={() => onDelete(note.id)}
+            className="text-slate-400 hover:text-rose-500 bg-slate-50 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/50 p-2 rounded-xl transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100"
+            title="Delete Note"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
       </div>
 
       <h3 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white mb-2 pr-6">
@@ -277,6 +298,7 @@ export default function NotesPage() {
       content: content.trim(),
       subject: subject.trim() || 'General',
       dateAdded: new Date().toISOString(),
+      isPinned: false, // Default newly added notes to unpinned
       attachments: savedAttachmentsMeta,
     };
 
@@ -297,19 +319,32 @@ export default function NotesPage() {
     setNotes(notes.filter(n => n.id !== id));
   };
 
-  // Combine Search Query & Subject Filter
-  const filteredNotes = notes.filter(note => {
-    const matchesSubject = activeFilter === 'All' || note.subject === activeFilter;
-    
-    const query = searchQuery.trim().toLowerCase();
-    if (!query) return matchesSubject;
+  const handleTogglePin = (id: string) => {
+    setNotes(notes.map(n => n.id === id ? { ...n, isPinned: !n.isPinned } : n));
+  };
 
-    const matchesTitle = note.title.toLowerCase().includes(query);
-    const matchesContent = note.content.toLowerCase().includes(query);
-    const matchesAttachmentName = note.attachments?.some(att => att.name.toLowerCase().includes(query));
+  // Combine Search Query & Subject Filter, then sort by pinned status and date
+  const processedNotes = notes
+    .filter(note => {
+      const matchesSubject = activeFilter === 'All' || note.subject === activeFilter;
+      
+      const query = searchQuery.trim().toLowerCase();
+      if (!query) return matchesSubject;
 
-    return matchesSubject && (matchesTitle || matchesContent || matchesAttachmentName);
-  });
+      const matchesTitle = note.title.toLowerCase().includes(query);
+      const matchesContent = note.content.toLowerCase().includes(query);
+      const matchesAttachmentName = note.attachments?.some(att => att.name.toLowerCase().includes(query));
+
+      return matchesSubject && (matchesTitle || matchesContent || matchesAttachmentName);
+    })
+    .sort((a, b) => {
+      // Pinned notes come first
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      
+      // If pinning status is the same, sort newest first
+      return new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime();
+    });
 
   return (
     <main className="p-4 sm:p-6 md:p-8 w-full min-h-screen bg-slate-50 dark:bg-slate-950 pt-20 md:pt-8 transition-all">
@@ -443,7 +478,7 @@ export default function NotesPage() {
           </div>
 
           {/* Notes Grid */}
-          {filteredNotes.length === 0 ? (
+          {processedNotes.length === 0 ? (
             <div className="text-center py-16 bg-slate-50 dark:bg-slate-900/50 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
               <StickyNote size={48} className="mx-auto text-slate-300 dark:text-slate-600 mb-4" />
               <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">No notes found</h3>
@@ -453,11 +488,12 @@ export default function NotesPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-              {filteredNotes.map(note => (
+              {processedNotes.map(note => (
                 <NoteCard 
                   key={note.id} 
                   note={note} 
                   onDelete={handleDeleteNote} 
+                  onTogglePin={handleTogglePin}
                   blobUrls={blobUrls} 
                   openAttachment={openAttachmentInNewTab} 
                 />
