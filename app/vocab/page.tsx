@@ -8,7 +8,6 @@ import { subDays } from 'date-fns';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useSpeech } from '@/hooks/useSpeech';
 
-// Updated: dateAdded is now a string to support JSON local storage
 export type VocabEntry = {
   id: string;
   term: string;
@@ -20,7 +19,6 @@ export type VocabEntry = {
 export default function VocabPage() {
   const { speak } = useSpeech();
 
-  // Swapped useState for useLocalStorage, matching the 'vocab-storage' key
   const [words, setWords] = useLocalStorage<VocabEntry[]>('vocab-storage', [
     {
       id: '1',
@@ -54,6 +52,11 @@ export default function VocabPage() {
     speak(text);
   };
 
+  // NEW: Function to delete a word by its ID
+  const handleDeleteWord = (id: string) => {
+    setWords((prevWords) => prevWords.filter((word) => word.id !== id));
+  };
+
   return (
     <main className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto min-h-screen">
       <header className="mb-6 sm:mb-8">
@@ -70,7 +73,12 @@ export default function VocabPage() {
         </section>
 
         <section>
-          <VocabList words={words} onPlayAudio={handlePlayAudio} />
+          {/* NEW: Passed onDeleteWord prop to VocabList */}
+          <VocabList 
+            words={words} 
+            onPlayAudio={handlePlayAudio} 
+            onDeleteWord={handleDeleteWord} 
+          />
         </section>
       </div>
     </main>
