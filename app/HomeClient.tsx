@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import DailyChecklist from '@/components/dashboard/DailyChecklist';
 import ProgressRing from '@/components/dashboard/ProgressRing';
 import ContributionCalendar from '@/components/dashboard/ContributionCalendar';
@@ -29,8 +29,25 @@ export type RecurringTaskTemplate = {
 export default function Home() {
   const [tasks, setTasks] = useLocalStorage<Task[]>('hub-tasks', []);
   const [recurringTemplates, setRecurringTemplates] = useLocalStorage<RecurringTaskTemplate[]>('hub-recurring-templates', []);
+  
+  // Greeting State
+  const [greeting, setGreeting] = useState('');
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
+
+  // --- Dynamic Greeting Logic ---
+  useEffect(() => {
+    const hour = new Date().getHours();
+    let timeGreeting = 'Good evening';
+    
+    if (hour < 12) {
+      timeGreeting = 'Good morning';
+    } else if (hour < 18) {
+      timeGreeting = 'Good afternoon';
+    }
+    
+    setGreeting(`${timeGreeting}!`);
+  }, []);
 
   // --- Auto-generate today's recurring tasks on load ---
   useEffect(() => {
@@ -128,9 +145,26 @@ export default function Home() {
 
   return (
     <main className="p-4 sm:p-6 md:p-8 max-w-6xl mx-auto min-h-screen">
-      <header className="mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-white">The Hub</h1>
-        <p className="text-slate-500 mt-2 text-sm sm:text-base">Your daily command center.</p>
+      <header className="mb-6 sm:mb-8 min-h-[4rem]">
+        {/* Animated Greeting */}
+        <motion.h1 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-white"
+        >
+          {greeting || 'The Hub'}
+        </motion.h1>
+        
+        {/* Animated Subtitle */}
+        <motion.p 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut", delay: 0.1 }}
+          className="text-slate-500 mt-2 text-sm sm:text-base font-medium"
+        >
+          Your daily command center.
+        </motion.p>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 items-start">
