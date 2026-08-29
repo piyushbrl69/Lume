@@ -3,7 +3,7 @@
 import React from 'react';
 import { Volume2, Calendar, Trash2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
-import { VocabEntry } from '@/app/vocab/page';
+import { VocabEntry } from '@/app/vocab/VocabClient';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 
 interface VocabListProps {

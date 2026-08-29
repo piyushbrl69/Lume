@@ -3,7 +3,7 @@
 import React from 'react';
 import { Clock, Volume2 } from 'lucide-react';
 import { subDays, isSameDay, parseISO } from 'date-fns';
-import { VocabEntry } from '@/app/vocab/page';
+import { VocabEntry } from '@/app/vocab/VocabClient';
 
 interface ReviewSectionProps {
   words: VocabEntry[];
