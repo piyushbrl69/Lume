@@ -8,7 +8,7 @@ import { motion, AnimatePresence, Variants } from 'framer-motion';
 interface DailyChecklistProps {
   tasks: Task[];
   existingSubjects: string[];
-  streakCount: number;
+  
   onToggleTask: (id: string) => void;
   onAddTask: (text: string, subject: string, frequency: TaskFrequency) => void;
   onDeleteTask: (id: string) => void;
@@ -51,7 +51,7 @@ const itemVariants: Variants = {
 export default function DailyChecklist({ 
   tasks, 
   existingSubjects, 
-  streakCount, 
+  
   onToggleTask, 
   onAddTask, 
   onDeleteTask 
@@ -83,20 +83,7 @@ export default function DailyChecklist({
         <h2 className="text-xl font-bold text-slate-800 dark:text-white">Daily Mission</h2>
         
         {/* Animated Streak Indicator */}
-        <motion.div 
-          key={streakCount} // Changing key triggers the animation on streak update
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: "spring", stiffness: 300, damping: 15 }}
-          suppressHydrationWarning 
-          className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-full text-sm font-medium text-slate-600 dark:text-slate-300"
-        >
-          <Flame 
-            size={16} 
-            className={mounted && streakCount > 0 ? "text-orange-500 fill-orange-500" : "text-slate-400"} 
-          />
-          <span>{mounted ? streakCount : 0} Day Streak</span>
-        </motion.div>
+        
       </div>
 
       <form onSubmit={handleAdd} className="flex flex-col sm:flex-row gap-2 mb-6">
