@@ -2,12 +2,27 @@
 
 import React, { useState } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { motion, AnimatePresence, Variants, Reorder } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, Trash2, Link as LinkIcon, MonitorPlay, Sparkles, Bot, Code2, 
   Wrench, Download, Upload, ShieldCheck, Database, RefreshCw, AlertCircle, GripVertical 
 } from 'lucide-react';
 import { exportLumeBackup, importLumeBackup } from '@/lib/backup';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  rectSortingStrategy,
+  useSortable,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 type Tool = {
   id: string;
@@ -23,6 +38,70 @@ const defaultTools: Tool[] = [
   { id: 'default-4', name: 'LeetCode', url: 'https://leetcode.com', iconType: 'leetcode' },
 ];
 
+function SortableToolCard({
+  tool,
+  getIcon,
+  onDelete,
+}: {
+  tool: Tool;
+  getIcon: (type: Tool['iconType'], className?: string) => React.ReactNode;
+  onDelete: (id: string, e: React.MouseEvent) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: tool.id });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : 'auto',
+    opacity: isDragging ? 0.6 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="group relative bg-white dark:bg-slate-900 rounded-2xl p-2 sm:p-3 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3 select-none"
+    >
+      {/* Drag Handle — only this element is draggable now */}
+      <button
+        {...attributes}
+        {...listeners}
+        type="button"
+        className="cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-500 dark:text-slate-600 dark:hover:text-slate-400 p-1 rounded transition-colors flex items-center justify-center touch-none"
+        aria-label={`Drag to reorder ${tool.name}`}
+      >
+        <GripVertical size={16} />
+      </button>
+
+      {/* Icon */}
+      <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 flex items-center justify-center shrink-0">
+        {getIcon(tool.iconType, "w-5 h-5")}
+      </div>
+
+      {/* Name & Link */}
+      <a 
+        href={tool.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex-1 font-semibold text-sm text-slate-700 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 truncate outline-none"
+      >
+        {tool.name}
+      </a>
+
+      {/* Delete Button */}
+      {tool.iconType === 'custom' && (
+        <button
+          onClick={(e) => onDelete(tool.id, e)}
+          className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all shrink-0"
+        >
+          <Trash2 size={16} />
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function ToolsPage() {
   const [tools, setTools] = useLocalStorage<Tool[]>('study-tools', defaultTools);
   const [newToolName, setNewToolName] = useState('');
@@ -31,6 +110,12 @@ export default function ToolsPage() {
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 6 }, // avoids hijacking simple clicks on the link/delete button
+    })
+  );
 
   const handleAddTool = (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,6 +142,17 @@ export default function ToolsPage() {
     e.preventDefault();
     e.stopPropagation();
     setTools(tools.filter(t => t.id !== id));
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    setTools((prev) => {
+      const oldIndex = prev.findIndex((t) => t.id === active.id);
+      const newIndex = prev.findIndex((t) => t.id === over.id);
+      return arrayMove(prev, oldIndex, newIndex);
+    });
   };
 
   const getIcon = (type: Tool['iconType'], className = "") => {
@@ -115,7 +211,7 @@ export default function ToolsPage() {
         <p className="text-slate-500 mt-2 text-sm sm:text-base">Manage app data and quick-access study bookmarks.</p>
       </header>
 
-      {/* 1. Backup & Restore Section (MOVED TO TOP & COMPACT) */}
+      {/* Backup & Restore Section */}
       <motion.section 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -178,7 +274,7 @@ export default function ToolsPage() {
 
       <div className="w-full h-px bg-slate-200 dark:bg-slate-800 my-4" />
 
-      {/* 2. Add New Tool Form */}
+      {/* Add New Tool Form */}
       <motion.section 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -212,60 +308,32 @@ export default function ToolsPage() {
         </form>
       </motion.section>
 
-      {/* 3. Tools Grid - Compact Pills & Drag to Reorder */}
+      {/* Tools Grid — 2D-aware drag reordering via dnd-kit */}
       <section className="space-y-4">
-        <h2 className="text-lg font-bold text-slate-800 dark:text-white text-sm text-slate-500">Drag handle to reorder</h2>
-        
-        {/* Reorder.Group handles the drag and drop logic automatically */}
-        <Reorder.Group 
-          axis="y" 
-          values={tools} 
-          onReorder={setTools}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-w-5xl"
+        <h2 className="text-sm font-bold text-slate-500">Drag handle to reorder</h2>
+
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
         >
-          <AnimatePresence>
-            {tools.map((tool) => (
-              <Reorder.Item
-                key={tool.id}
-                value={tool}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                className="group relative bg-white dark:bg-slate-900 rounded-2xl p-2 sm:p-3 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3 select-none"
-              >
-                {/* Drag Handle (Visible on hover) */}
-                <div className="cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-500 dark:text-slate-600 dark:hover:text-slate-400 p-1 rounded transition-colors flex items-center justify-center">
-                  <GripVertical size={16} />
-                </div>
-
-                {/* Icon */}
-                <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 flex items-center justify-center shrink-0">
-                  {getIcon(tool.iconType, "w-5 h-5")}
-                </div>
-
-                {/* Name & Link Area */}
-                <a 
-                  href={tool.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 font-semibold text-sm text-slate-700 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 truncate outline-none"
-                >
-                  {tool.name}
-                </a>
-
-                {/* Delete Button */}
-                {tool.iconType === 'custom' && (
-                  <button
-                    onClick={(e) => handleDeleteTool(tool.id, e)}
-                    className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all shrink-0"
+          <SortableContext items={tools.map((t) => t.id)} strategy={rectSortingStrategy}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-w-5xl">
+              <AnimatePresence>
+                {tools.map((tool) => (
+                  <motion.div
+                    key={tool.id}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
                   >
-                    <Trash2 size={16} />
-                  </button>
-                )}
-              </Reorder.Item>
-            ))}
-          </AnimatePresence>
-        </Reorder.Group>
+                    <SortableToolCard tool={tool} getIcon={getIcon} onDelete={handleDeleteTool} />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          </SortableContext>
+        </DndContext>
       </section>
     </main>
   );

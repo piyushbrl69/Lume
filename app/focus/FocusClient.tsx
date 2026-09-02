@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Play, Pause, RotateCcw, Plus, Coffee, Brain, Settings2 } from 'lucide-react';
+import { Play, Pause, RotateCcw, Plus, Coffee, Brain, Settings2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { format, subDays, isSameDay, parseISO } from 'date-fns';
 
@@ -47,6 +47,9 @@ export default function FocusPage() {
   const [customMinutes, setCustomMinutes] = useState('');
 
   const [stats, setStats] = useLocalStorage<DailyStat[]>('study-stats', []);
+  
+  // New state to manage charting pagination
+  const [weekOffset, setWeekOffset] = useState(0);
 
   // 1. INITIAL LOAD
   useEffect(() => {
@@ -181,10 +184,11 @@ export default function FocusPage() {
   const minutesDisplay = Math.floor(timeLeft / 60);
   const secondsDisplay = timeLeft % 60;
 
-  // 4. CHART DATA PREPARATION
-  // FIXED: Removed .reverse() so the array starts from 6 days ago and ends on today
-  const last7Days = Array.from({ length: 7 }).map((_, i) => subDays(new Date(), 6 - i));
-  const chartData = last7Days.map(day => {
+  // 4. CHART DATA PREPARATION WITH WEEK OFFSET
+  const baseDate = subDays(new Date(), weekOffset * 7);
+  const selected7Days = Array.from({ length: 7 }).map((_, i) => subDays(baseDate, 6 - i));
+  
+  const chartData = selected7Days.map(day => {
     const stat = stats.find(s => isSameDay(parseISO(s.date), day));
     return {
       label: format(day, 'EEE'),
@@ -193,9 +197,16 @@ export default function FocusPage() {
   });
 
   const maxSeconds = Math.max(...chartData.map(d => d.seconds), 1);
-  const todayTotalSeconds = chartData[6].seconds;
+  
+  // "Studied Today" calculation - ALWAYS TODAY regardless of chart pagination
+  const todayStat = stats.find(s => isSameDay(parseISO(s.date), new Date()));
+  const todayTotalSeconds = todayStat ? todayStat.secondsStudied : 0;
   const todayHours = Math.floor(todayTotalSeconds / 3600);
   const todayMinutes = Math.floor((todayTotalSeconds % 3600) / 60);
+
+  // Calculate Lifetime Total to show the user their data isn't being lost
+  const lifetimeSeconds = stats.reduce((acc, stat) => acc + stat.secondsStudied, 0);
+  const lifetimeHours = Math.floor(lifetimeSeconds / 3600);
 
   // Helper to format minutes into "Xh Ym" or "Zm"
   const formatStudyTime = (totalSeconds: number) => {
@@ -220,6 +231,11 @@ export default function FocusPage() {
           <p className="text-2xl font-black text-indigo-600 dark:text-indigo-400">
             {todayHours > 0 && `${todayHours}h `}{todayMinutes}m
           </p>
+          {lifetimeHours > 0 && (
+            <p className="text-xs font-semibold text-slate-500 mt-1 uppercase tracking-widest">
+              {lifetimeHours}h Lifetime Total
+            </p>
+          )}
         </div>
       </header>
 
@@ -306,25 +322,46 @@ export default function FocusPage() {
           </div>
         </div>
 
-        {/* Analytics Section */}
+        {/* Analytics Section with Pagination Header */}
         <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col">
-          <h2 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-white mb-6">Study History</h2>
+          
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-white">Study History</h2>
+            <div className="flex items-center gap-1">
+              <button 
+                onClick={() => setWeekOffset(prev => prev + 1)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                title="Previous Week"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <span className="text-[11px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 w-[60px] text-center uppercase tracking-wider">
+                {weekOffset === 0 ? 'Current' : `${weekOffset}w ago`}
+              </span>
+              <button 
+                onClick={() => setWeekOffset(prev => Math.max(0, prev - 1))}
+                disabled={weekOffset === 0}
+                className={`p-1.5 rounded-lg transition-colors ${weekOffset === 0 ? 'text-slate-300 dark:text-slate-700 cursor-not-allowed' : 'text-slate-400 hover:text-indigo-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                title="Next Week"
+              >
+                <ChevronRight size={20} />
+              </button>
+            </div>
+          </div>
 
           <div className="flex-1 flex flex-col justify-end">
             <div className="flex items-end justify-between gap-2 h-40 sm:h-48 border-b border-slate-100 dark:border-slate-800 pb-2">
               {chartData.map((data, index) => {
                 const heightPercent = data.seconds === 0 ? 0 : Math.max((data.seconds / maxSeconds) * 100, 5);
-                // Since array is no longer reversed, today is always at the end (index 6)
-                const isToday = index === 6;
+                const isActualToday = weekOffset === 0 && index === 6;
 
                 return (
-                  <div key={data.label} className="relative flex flex-col justify-end items-center gap-1 flex-1 group h-full">
-                    {/* Hover tooltip using the new formatting helper */}
-                    <div className="opacity-0 group-hover:opacity-100 text-[10px] font-bold text-slate-500 transition-opacity mb-1 whitespace-nowrap">
+                  <div key={index} className="relative flex flex-col justify-end items-center gap-1 flex-1 group h-full">
+                    <div className="opacity-0 group-hover:opacity-100 text-[10px] font-bold text-slate-500 transition-opacity mb-1 whitespace-nowrap z-10">
                       {formatStudyTime(data.seconds)}
                     </div>
                     <div
-                      className={`w-full max-w-[36px] rounded-t-md transition-all duration-500 ease-out ${isToday ? 'bg-indigo-500' : 'bg-slate-200 dark:bg-slate-700'}`}
+                      className={`w-full max-w-[36px] rounded-t-md transition-all duration-500 ease-out ${isActualToday ? 'bg-indigo-500' : 'bg-slate-200 dark:bg-slate-700'}`}
                       style={{ height: `${heightPercent}%`, minHeight: data.seconds > 0 ? '4px' : '0px' }}
                     />
                   </div>
@@ -334,7 +371,7 @@ export default function FocusPage() {
 
             <div className="flex justify-between mt-2">
               {chartData.map((data, index) => (
-                <span key={`label-${data.label}`} className={`text-[10px] sm:text-xs font-bold text-center flex-1 ${index === 6 ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`}>
+                <span key={`label-${index}`} className={`text-[10px] sm:text-xs font-bold text-center flex-1 ${weekOffset === 0 && index === 6 ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`}>
                   {data.label}
                 </span>
               ))}
