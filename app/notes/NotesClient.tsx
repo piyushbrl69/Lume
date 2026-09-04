@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Filter, StickyNote, Calendar, Paperclip, Image as ImageIcon, FileText, X, ExternalLink, Search, ChevronDown, ChevronUp, Pin } from 'lucide-react';
+import Link from 'next/link';
+import { Plus, Trash2, Filter, StickyNote, Calendar, Paperclip, Image as ImageIcon, FileText, X, ExternalLink, Search, ChevronDown, ChevronUp, Pin, BookHeart } from 'lucide-react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { format, parseISO } from 'date-fns';
 import { saveAttachmentBlob, getAttachmentBlob, deleteAttachmentBlob } from '@/lib/db';
@@ -19,7 +20,7 @@ type Note = {
   content: string;
   subject: string;
   dateAdded: string;
-  isPinned?: boolean; // Added pinning property
+  isPinned?: boolean;
   attachments?: AttachmentMeta[];
 };
 
@@ -349,12 +350,22 @@ export default function NotesPage() {
   return (
     <main className="p-4 sm:p-6 md:p-8 w-full min-h-screen bg-slate-50 dark:bg-slate-950 pt-20 md:pt-8 transition-all">
       
-      <header className="mb-6 md:mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-white flex items-center gap-3">
-          <StickyNote size={32} className="text-indigo-500 shrink-0" />
-          Notes & Thoughts
-        </h1>
-        <p className="text-sm sm:text-base text-slate-500 mt-1 sm:mt-2">Jot down daily ideas or study notes with attachments of any size.</p>
+      <header className="mb-6 md:mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-white flex items-center gap-3">
+            <StickyNote size={32} className="text-indigo-500 shrink-0" />
+            Notes & Thoughts
+          </h1>
+          <p className="text-sm sm:text-base text-slate-500 mt-1 sm:mt-2">Jot down daily ideas or study notes with attachments of any size.</p>
+        </div>
+
+        <Link 
+          href="/diary" 
+          className="flex items-center gap-2 bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:hover:bg-rose-900/50 dark:text-rose-400 px-4 py-2.5 rounded-xl font-bold transition-colors text-sm sm:text-base shrink-0 w-fit"
+        >
+          <BookHeart size={20} />
+          Open Personal Diary
+        </Link>
       </header>
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 md:gap-8 items-start">

@@ -25,6 +25,7 @@ export default function Sidebar() {
     { name: 'Tools', href: '/tools', icon: <Wrench size={20} /> },
     { name: 'About', href: '/about', icon: <Info size={20} /> },
     { name: 'Help', href: '/help', icon: <HandHelping size={20} /> },
+    
   ];
 
   const themes: { id: Theme; label: string; swatch: string }[] = [
