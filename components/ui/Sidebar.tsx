@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Sparkles, Menu, X, LayoutDashboard, Library, BookA, 
-  StickyNote, Timer, History, Wrench, Palette, Info, HandHelping 
+  StickyNote, Timer, History, Wrench, Palette, Info, BrainCircuit, HandHelping 
 } from 'lucide-react';
 import { useTheme, Theme } from './ThemeProvider';
 
@@ -25,6 +25,7 @@ export default function Sidebar() {
     { name: 'Tools', href: '/tools', icon: <Wrench size={20} /> },
     { name: 'About', href: '/about', icon: <Info size={20} /> },
     { name: 'Help', href: '/help', icon: <HandHelping size={20} /> },
+    { name: 'AI Quiz', href: '/quiz', icon: <BrainCircuit size={20} /> },
     
   ];
 
@@ -33,6 +34,7 @@ export default function Sidebar() {
     { id: 'sepia', label: 'Sepia', swatch: 'bg-[#eaddc5] border-[#d0c1a5]' },
     { id: 'dark', label: 'Dark', swatch: 'bg-slate-800 border-slate-600' },
     { id: 'midnight', label: 'OLED', swatch: 'bg-black border-slate-800' },
+    
   ];
 
   return (

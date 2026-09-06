@@ -3,35 +3,51 @@
 import React from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { Task } from '@/app/HomeClient'; // Adjusted import to match standard Next.js pathing
-import { CheckCircle2, Calendar, Clock, Eye, EyeOff } from 'lucide-react';
+import { CheckCircle2, Calendar, Clock, Eye, EyeOff, BrainCircuit } from 'lucide-react';
 import { format, isToday, isYesterday, parseISO } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Pulling in the DailyStat type used in the focus page
 type DailyStat = {
   date: string;
   secondsStudied: number;
+};
+
+// New Type for Quiz History
+type QuizStat = {
+  id: string;
+  date: string; // 'YYYY-MM-DD'
+  topic: string;
+  score: number;
+  total: number;
 };
 
 export default function HistoryPage() {
   const [tasks] = useLocalStorage<Task[]>('hub-tasks', []);
   const [stats] = useLocalStorage<DailyStat[]>('study-stats', []);
   
-  // Toggle for showing/hiding focus time
+  // Pull in the quiz history
+  const [quizStats] = useLocalStorage<QuizStat[]>('quiz-history', []);
+  
   const [showFocusTime, setShowFocusTime] = useLocalStorage('history-show-focus', true);
 
-  // Filter only completed tasks that have a date property
+  // Filter and Group Tasks
   const completedTasks = tasks.filter(t => t.completed && t.date);
-
-  // Group by date
   const groupedTasks = completedTasks.reduce((acc, task) => {
     if (!acc[task.date]) acc[task.date] = [];
     acc[task.date].push(task);
     return acc;
   }, {} as Record<string, Task[]>);
 
-  // Sort dates descending (newest first)
-  const sortedDates = Object.keys(groupedTasks).sort((a, b) => (a < b ? 1 : -1));
+  // Group Quizzes by Date
+  const groupedQuizzes = quizStats.reduce((acc, quiz) => {
+    if (!acc[quiz.date]) acc[quiz.date] = [];
+    acc[quiz.date].push(quiz);
+    return acc;
+  }, {} as Record<string, QuizStat[]>);
+
+  // Merge all dates from both Tasks and Quizzes, then sort descending
+  const allDatesSet = new Set([...Object.keys(groupedTasks), ...Object.keys(groupedQuizzes)]);
+  const sortedDates = Array.from(allDatesSet).sort((a, b) => (a < b ? 1 : -1));
 
   const formatHeader = (dateStr: string) => {
     const date = parseISO(dateStr);
@@ -40,13 +56,11 @@ export default function HistoryPage() {
     return format(date, 'MMMM do, yyyy');
   };
 
-  // Helper to get total seconds studied on a specific string date ('YYYY-MM-DD')
   const getStudyTimeForDate = (dateStr: string) => {
     const stat = stats.find(s => s.date.startsWith(dateStr));
     return stat ? stat.secondsStudied : 0;
   };
 
-  // Helper to format seconds into "Xh Ym"
   const formatStudyTime = (totalSeconds: number) => {
     if (!totalSeconds) return '0m';
     const totalMins = Math.round(totalSeconds / 60);
@@ -63,10 +77,9 @@ export default function HistoryPage() {
       <header className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-white">Completed History</h1>
-          <p className="text-slate-500 mt-2 text-sm sm:text-base">Review your past missions and accomplishments.</p>
+          <p className="text-slate-500 mt-2 text-sm sm:text-base">Review your past missions, quizzes, and accomplishments.</p>
         </div>
 
-        {/* Visibility Toggle */}
         <button 
           onClick={() => setShowFocusTime(!showFocusTime)}
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-indigo-300 dark:hover:border-indigo-700 shadow-sm"
@@ -79,12 +92,24 @@ export default function HistoryPage() {
       {sortedDates.length === 0 ? (
         <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 sm:p-12 text-center shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col items-center">
           <Calendar className="text-slate-300 dark:text-slate-700 w-14 h-14 sm:w-16 sm:h-16 mb-4" />
-          <p className="text-slate-500 font-medium">No completed tasks yet. Keep pushing!</p>
+          <p className="text-slate-500 font-medium">No history yet. Keep pushing!</p>
         </div>
       ) : (
         <div className="space-y-6">
           {sortedDates.map(date => {
             const secondsStudied = getStudyTimeForDate(date);
+            const dayTasks = groupedTasks[date] || [];
+            const dayQuizzes = groupedQuizzes[date] || [];
+            
+            // Group the day's quizzes by topic so it displays "X quizzes solved in [Topic]"
+            const quizzesByTopic = dayQuizzes.reduce((acc, q) => {
+              const t = q.topic || 'General Knowledge';
+              if (!acc[t]) acc[t] = { count: 0, score: 0, total: 0 };
+              acc[t].count += 1;
+              acc[t].score += q.score;
+              acc[t].total += q.total;
+              return acc;
+            }, {} as Record<string, { count: number; score: number; total: number }>);
             
             return (
               <motion.div 
@@ -101,7 +126,6 @@ export default function HistoryPage() {
                     </h2>
                   </div>
 
-                  {/* Render Focus Metric if toggle is ON and they studied that day */}
                   <AnimatePresence>
                     {showFocusTime && secondsStudied > 0 && (
                       <motion.div 
@@ -118,7 +142,23 @@ export default function HistoryPage() {
                 </div>
                 
                 <ul className="space-y-4">
-                  {groupedTasks[date].map(task => (
+                  {/* 1. Render Quizzes First */}
+                  {Object.entries(quizzesByTopic).map(([topicName, data]) => (
+                    <li key={`quiz-${topicName}`} className="flex items-start gap-3 sm:gap-4 text-slate-700 dark:text-slate-300">
+                      <BrainCircuit size={22} className="text-purple-500 shrink-0 mt-0.5" />
+                      <div className="flex items-center flex-wrap gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
+                          Quiz
+                        </span>
+                        <span className="text-sm sm:text-base font-medium break-words">
+                          {data.count} {data.count === 1 ? 'quiz' : 'quizzes'} solved in <span className="font-bold">{topicName}</span> ({data.score}/{data.total})
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+
+                  {/* 2. Render Tasks */}
+                  {dayTasks.map(task => (
                     <li key={task.id} className="flex items-start gap-3 sm:gap-4 text-slate-700 dark:text-slate-300">
                       <CheckCircle2 size={22} className="text-emerald-500 shrink-0 mt-0.5" />
                       <div className="flex items-center flex-wrap gap-2">
