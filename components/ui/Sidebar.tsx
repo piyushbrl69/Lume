@@ -17,8 +17,6 @@ export default function Sidebar() {
 
   const navItems = [
     { name: 'The Hub', href: '/', icon: <LayoutDashboard size={20} /> },
-    { name: 'Flashcards', href: '/flashcards', icon: <Library size={20} /> },
-    { name: 'Arsenal', href: '/vocab', icon: <BookA size={20} /> },
     { name: 'Notes', href: '/notes', icon: <StickyNote size={20} /> },
     { name: 'Focus', href: '/focus', icon: <Timer size={20} /> },
     { name: 'History', href: '/history', icon: <History size={20} /> },

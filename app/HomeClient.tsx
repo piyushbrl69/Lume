@@ -8,7 +8,7 @@ import ContributionCalendar from '@/components/dashboard/ContributionCalendar';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, LayoutDashboard, Activity, StickyNote, BrainCircuit, History, BookHeart, Wrench } from 'lucide-react';
+import { Settings, LayoutDashboard, Activity, StickyNote, BrainCircuit, History,BookA, BookHeart, Wrench } from 'lucide-react';
 
 export type TaskFrequency = 'once' | 'daily' | 'weekdays' | 'weekends';
 
@@ -34,7 +34,8 @@ const AVAILABLE_SHORTCUTS = [
   { id: 'quiz', name: 'AI Quiz', href: '/quiz', icon: BrainCircuit, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-950/40' },
   { id: 'history', name: 'History', href: '/history', icon: History, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/40' },
   { id: 'diary', name: 'Diary', href: '/diary', icon: BookHeart, color: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-50 dark:bg-rose-950/40' },
-  { id: 'tools', name: 'Tools', href: '/tools', icon: Wrench, color: 'text-slate-600 dark:text-slate-400', bg: 'bg-slate-100 dark:bg-slate-800' },
+  { id: 'vocab', name: 'Vocab', href: '/vocab', icon: BookA, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-950/40' },
+  { id: 'flashcards', name: 'FlashCards', href: '/flashcards', icon: BookA, color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-950/40' },
 ];
 
 export default function Home() {
