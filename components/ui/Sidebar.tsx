@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Sparkles, Menu, X, LayoutDashboard, Library, BookA, 
+  Sparkles, Menu, X, LayoutDashboard, 
   StickyNote, Timer, History, Wrench, Palette, Info, BrainCircuit, HandHelping 
 } from 'lucide-react';
 import { useTheme, Theme } from './ThemeProvider';
