@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Sparkles, Menu, X, LayoutDashboard, 
-  StickyNote, Timer, History, Wrench, Palette, Info, BrainCircuit, HandHelping 
+  StickyNote, Timer, History, Wrench, Palette, Info, BrainCircuit, Map, HandHelping 
 } from 'lucide-react';
 import { useTheme, Theme } from './ThemeProvider';
 
@@ -20,10 +20,12 @@ export default function Sidebar() {
     { name: 'Notes', href: '/notes', icon: <StickyNote size={20} /> },
     { name: 'Focus', href: '/focus', icon: <Timer size={20} /> },
     { name: 'History', href: '/history', icon: <History size={20} /> },
+    
+    { name: 'AI Quiz', href: '/quiz', icon: <BrainCircuit size={20} /> },
+    { name: 'RoadMap', href: '/roadmap', icon: <Map size={20} /> },
     { name: 'Tools', href: '/tools', icon: <Wrench size={20} /> },
     { name: 'About', href: '/about', icon: <Info size={20} /> },
     { name: 'Help', href: '/help', icon: <HandHelping size={20} /> },
-    { name: 'AI Quiz', href: '/quiz', icon: <BrainCircuit size={20} /> },
     
   ];
 

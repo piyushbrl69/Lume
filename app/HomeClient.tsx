@@ -9,8 +9,8 @@ import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Settings, LayoutDashboard, Activity, StickyNote,Library, BookA, BrainCircuit, 
-  History, BookHeart, Wrench, Target, Flag, AlertTriangle, X 
+  Settings, LayoutDashboard, Activity, StickyNote, Library, BookA, BrainCircuit, 
+  History, BookHeart, Wrench, Target, Flag, AlertTriangle, X, Sparkles, GitFork 
 } from 'lucide-react';
 
 export type TaskFrequency = 'once' | 'daily' | 'weekdays' | 'weekends';
@@ -62,6 +62,10 @@ export default function Home() {
   const [pinnedShortcuts, setPinnedShortcuts] = useLocalStorage<string[]>('hub-pinned-shortcuts', ['notes', 'quiz']);
   const [examGoal, setExamGoal] = useLocalStorage<ExamGoal | null>('hub-exam-goal', null);
   
+  // What's New Annoucement State (Unique key for this specific update)
+  const [hasSeenWhatsNew, setHasSeenWhatsNew] = useLocalStorage('lume-whatsnew-v1-roadmap', false);
+  const [showWhatsNewModal, setShowWhatsNewModal] = useState(false);
+
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
   const [greeting, setGreeting] = useState('');
@@ -71,6 +75,19 @@ export default function Home() {
   const [goalDate, setGoalDate] = useState('');
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
+
+  // Trigger What's New Modal
+  useEffect(() => {
+    if (!hasSeenWhatsNew) {
+      const timer = setTimeout(() => setShowWhatsNewModal(true), 800);
+      return () => clearTimeout(timer);
+    }
+  }, [hasSeenWhatsNew]);
+
+  const closeWhatsNew = () => {
+    setShowWhatsNewModal(false);
+    setHasSeenWhatsNew(true);
+  };
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -452,6 +469,60 @@ export default function Home() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* --- WHAT'S NEW MODAL --- */}
+      <AnimatePresence>
+        {showWhatsNewModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeWhatsNew} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden"
+            >
+              {/* Background decoration */}
+              <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-br from-indigo-500 to-purple-600 opacity-10 pointer-events-none" />
+
+              <button onClick={closeWhatsNew} className="absolute top-4 right-4 p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors z-10">
+                <X size={20} />
+              </button>
+              
+              <div className="w-14 h-14 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center mb-6 relative z-10 shadow-inner">
+                <Sparkles size={28} />
+              </div>
+              
+              <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2 relative z-10">What's New in Lume</h2>
+              <p className="text-sm text-slate-500 mb-6 relative z-10">We've just rolled out some powerful new tools to supercharge your prep.</p>
+
+              <div className="space-y-4 mb-8 relative z-10">
+                <div className="flex items-start gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                    <GitFork size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-800 dark:text-slate-200 text-sm">Topic Progress Tree</h3>
+                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">Map out your entire exam syllabus. Track readiness across all subjects and topics. Click <strong>Roadmap</strong> in the sidebar to start.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
+                  <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                    <Wrench size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-800 dark:text-slate-200 text-sm">Bugfixes & Polish</h3>
+                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">Smoother animations, refined layouts, and minor under-the-hood performance improvements.</p>
+                  </div>
+                </div>
+              </div>
+
+              <button onClick={closeWhatsNew} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl transition-all shadow-md relative z-10">
+                Awesome, let's go!
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </main>
   );
 }
