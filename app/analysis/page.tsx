@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PieChart, Target, CheckCircle2, XCircle, BrainCircuit, ChevronDown, ChevronUp, Clock, AlertCircle, Search, Calendar, Filter } from 'lucide-react';
+import { PieChart, Target, CheckCircle2, XCircle, BrainCircuit, ChevronDown, ChevronUp, Clock, AlertCircle, Search, Calendar, Filter, Flame } from 'lucide-react';
 
 type QuizDetail = {
   question: string;
@@ -25,7 +25,6 @@ export default function AnalysisPage() {
   const [history, setHistory] = useState<QuizStat[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   
-  // Filtering State
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFilter, setDateFilter] = useState('All');
 
@@ -34,17 +33,14 @@ export default function AnalysisPage() {
     setHistory(stored.sort((a: QuizStat, b: QuizStat) => b.id.localeCompare(a.id)));
   }, []);
 
-  // Extract unique dates for the dropdown filter
   const uniqueDates = Array.from(new Set(history.map(q => q.date))).sort((a, b) => b.localeCompare(a));
 
-  // Apply Filters
   const filteredHistory = history.filter(quiz => {
     const matchesSearch = quiz.topic.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesDate = dateFilter === 'All' || quiz.date === dateFilter;
     return matchesSearch && matchesDate;
   });
 
-  // Calculate Dynamic Metrics based on Filtered Data
   const totalQuizzes = filteredHistory.length;
   const totalQuestions = filteredHistory.reduce((acc, curr) => acc + curr.total, 0);
   const totalCorrect = filteredHistory.reduce((acc, curr) => acc + curr.score, 0);
@@ -55,21 +51,59 @@ export default function AnalysisPage() {
     setExpandedId(expandedId === id ? null : id);
   };
 
+  // --- NEW: Handle Weak Spot Drill ---
+  const handleDrillWeakSpots = () => {
+    const missedQuestions: string[] = [];
+    
+    // Gather incorrect questions from the currently filtered view
+    filteredHistory.forEach(quiz => {
+      if (quiz.details) {
+        quiz.details.forEach(q => {
+          if (q.userAnswer !== q.correctAnswer) {
+            missedQuestions.push(q.question);
+          }
+        });
+      }
+    });
+
+    if (missedQuestions.length === 0) {
+      alert("No mistakes found in this view! You're doing great.");
+      return;
+    }
+
+    // Take up to 5 most recent mistakes to keep the prompt focused
+    const recentMisses = missedQuestions.slice(0, 5);
+    const drillPrompt = `Remedial Drill focusing on concepts related to these missed questions: ${recentMisses.join(' | ')}`;
+
+    // Hand off the prompt to the Quiz page
+    localStorage.setItem('lume-drill-topic', drillPrompt);
+    window.location.href = '/quiz';
+  };
+
   return (
     <main className="p-4 sm:p-6 md:p-8 w-full min-h-screen bg-slate-50 dark:bg-slate-950 space-y-8">
       
-      <header>
-        <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-white flex items-center gap-3">
-          <PieChart className="text-indigo-500 shrink-0" size={32} />
-          Performance Analysis
-        </h1>
-        <p className="text-slate-500 mt-2 text-sm sm:text-base">Track your accuracy and review past mistakes to improve retention.</p>
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-white flex items-center gap-3">
+            <PieChart className="text-indigo-500 shrink-0" size={32} />
+            Performance Analysis
+          </h1>
+          <p className="text-slate-500 mt-2 text-sm sm:text-base">Track your accuracy and review past mistakes to improve retention.</p>
+        </div>
+
+        {/* Drill Weak Spots Button */}
+        <button 
+          onClick={handleDrillWeakSpots}
+          className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:hover:bg-rose-900/50 dark:text-rose-400 shrink-0 shadow-sm"
+        >
+          <Flame size={18} />
+          Drill Weak Spots
+        </button>
       </header>
 
       {/* DYNAMIC FILTER BAR */}
       <section className="flex flex-col sm:flex-row gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-        
-        {/* Topic Search */}
         <div className="relative flex-1">
           <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input 
@@ -80,8 +114,6 @@ export default function AnalysisPage() {
             className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800 dark:text-slate-200 text-sm font-medium transition-all"
           />
         </div>
-
-        {/* Date Filter Dropdown */}
         <div className="flex items-center gap-2 shrink-0">
           <Calendar size={18} className="text-slate-400 hidden sm:block" />
           <select 
@@ -97,26 +129,23 @@ export default function AnalysisPage() {
         </div>
       </section>
 
-      {/* TOP METRICS DASHBOARD (Dynamically updates based on filters) */}
+      {/* TOP METRICS DASHBOARD */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-center items-center text-center">
           <BrainCircuit className="text-indigo-500 mb-2" size={24} />
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Quizzes Found</p>
           <p className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-white mt-1">{totalQuizzes}</p>
         </div>
-        
         <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-center items-center text-center">
           <Target className="text-blue-500 mb-2" size={24} />
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Avg. Accuracy</p>
           <p className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-white mt-1">{overallAccuracy}%</p>
         </div>
-
         <div className="bg-emerald-50 dark:bg-emerald-950/30 p-5 rounded-3xl border border-emerald-100 dark:border-emerald-900/50 shadow-sm flex flex-col justify-center items-center text-center">
           <CheckCircle2 className="text-emerald-500 mb-2" size={24} />
           <p className="text-xs font-bold text-emerald-600 dark:text-emerald-500 uppercase tracking-wider">Questions Correct</p>
           <p className="text-2xl sm:text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-1">{totalCorrect}</p>
         </div>
-
         <div className="bg-rose-50 dark:bg-rose-950/30 p-5 rounded-3xl border border-rose-100 dark:border-rose-900/50 shadow-sm flex flex-col justify-center items-center text-center">
           <XCircle className="text-rose-500 mb-2" size={24} />
           <p className="text-xs font-bold text-rose-600 dark:text-rose-500 uppercase tracking-wider">Questions Missed</p>
@@ -144,8 +173,6 @@ export default function AnalysisPage() {
 
             return (
               <div key={quiz.id} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden transition-all">
-                
-                {/* Header Row (Clickable) */}
                 <button 
                   onClick={() => toggleExpand(quiz.id)}
                   className="w-full p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-left"
@@ -154,7 +181,6 @@ export default function AnalysisPage() {
                     <h3 className="font-bold text-slate-800 dark:text-white text-base sm:text-lg pr-4">{quiz.topic}</h3>
                     <p className="text-xs text-slate-500 mt-1 font-medium">{quiz.date}</p>
                   </div>
-
                   <div className="flex items-center justify-between sm:justify-end gap-6 shrink-0 w-full sm:w-auto">
                     <div className="flex items-center gap-4">
                       <div className="text-right">
@@ -173,13 +199,10 @@ export default function AnalysisPage() {
                   </div>
                 </button>
 
-                {/* Expanded Details */}
                 <AnimatePresence>
                   {isExpanded && (
                     <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
+                      initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                       className="border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50"
                     >
                       <div className="p-4 sm:p-6 space-y-6">
@@ -188,29 +211,20 @@ export default function AnalysisPage() {
                         ) : (
                           quiz.details.map((q, idx) => {
                             const isCorrect = q.userAnswer === q.correctAnswer;
-                            
                             return (
                               <div key={idx} className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
                                 <div className="flex items-start gap-3 mb-4">
-                                  {isCorrect ? (
-                                    <CheckCircle2 className="text-emerald-500 shrink-0 mt-0.5" size={22} />
-                                  ) : (
-                                    <XCircle className="text-rose-500 shrink-0 mt-0.5" size={22} />
-                                  )}
+                                  {isCorrect ? <CheckCircle2 className="text-emerald-500 shrink-0 mt-0.5" size={22} /> : <XCircle className="text-rose-500 shrink-0 mt-0.5" size={22} />}
                                   <h4 className="font-bold text-slate-800 dark:text-white text-sm sm:text-base leading-snug">
                                     <span className="text-slate-400 mr-2">{idx + 1}.</span>
                                     {q.question}
                                   </h4>
                                 </div>
-                                
                                 <div className="ml-9 space-y-2 text-sm font-semibold">
                                   <p className="text-slate-500 flex flex-wrap gap-2 items-center">
                                     <span className="uppercase text-[10px] tracking-wider font-bold bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-slate-600 dark:text-slate-400">Your Answer</span> 
-                                    <span className={isCorrect ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}>
-                                      {q.userAnswer}
-                                    </span>
+                                    <span className={isCorrect ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}>{q.userAnswer}</span>
                                   </p>
-                                  
                                   {!isCorrect && (
                                     <p className="text-slate-500 flex flex-wrap gap-2 items-center">
                                       <span className="uppercase text-[10px] tracking-wider font-bold bg-emerald-50 dark:bg-emerald-900/30 px-2 py-1 rounded text-emerald-600 dark:text-emerald-400">Correct Answer</span> 
@@ -218,11 +232,9 @@ export default function AnalysisPage() {
                                     </p>
                                   )}
                                 </div>
-                                
                                 <div className="ml-9 mt-4 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 p-4 rounded-xl">
                                   <p className="text-xs sm:text-sm text-indigo-800 dark:text-indigo-300 leading-relaxed font-medium">
-                                    <span className="font-bold mr-1">Explanation:</span> 
-                                    {q.explanation}
+                                    <span className="font-bold mr-1">Explanation:</span> {q.explanation}
                                   </p>
                                 </div>
                               </div>
@@ -238,7 +250,6 @@ export default function AnalysisPage() {
           })
         )}
       </section>
-
     </main>
   );
 }

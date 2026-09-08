@@ -1,7 +1,7 @@
 "use client";
 
 import { format } from 'date-fns';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BrainCircuit, Upload, Sparkles, CheckCircle2, XCircle, RefreshCw, FileText, PieChart, Target, ArrowRight } from 'lucide-react';
@@ -21,7 +21,6 @@ export default function QuizPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [quiz, setQuiz] = useState<QuizQuestion[] | null>(null);
   
-  // Active Quiz State
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [score, setScore] = useState(0);
@@ -29,16 +28,22 @@ export default function QuizPage() {
   
   const [userAnswers, setUserAnswers] = useState<string[]>([]);
 
-  const handleGenerate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!topic.trim() && !file) return;
+  // --- NEW: Auto-Trigger Logic ---
+  // We modified handleGenerate to accept an optional overrideTopic
+  // so the useEffect can call it directly without a form click.
+  const handleGenerate = async (e?: React.FormEvent, overrideTopic?: string) => {
+    if (e) e.preventDefault();
+    
+    const activeTopic = overrideTopic !== undefined ? overrideTopic : topic;
+    
+    if (!activeTopic.trim() && !file) return;
 
     setIsGenerating(true);
     setQuiz(null);
 
     try {
       const formData = new FormData();
-      if (topic.trim()) formData.append('topic', topic);
+      if (activeTopic.trim()) formData.append('topic', activeTopic);
       if (file) formData.append('file', file);
       formData.append('count', questionCount.toString()); 
 
@@ -58,11 +63,23 @@ export default function QuizPage() {
       setIsFinished(false);
       setUserAnswers([]); 
     } catch (err) {
-      alert("Failed to generate quiz. Please wait atleast 2 Mintues before trying again or Ensure your PDF is under 20MB and your API key is valid.");
+      alert("Failed to generate quiz. Ensure your PDF is under 20MB and your API key is valid.");
     } finally {
       setIsGenerating(false);
     }
   };
+
+  // Intercept the hand-off from the Analysis page and START immediately
+  useEffect(() => {
+    const drillTopic = localStorage.getItem('lume-drill-topic');
+    if (drillTopic) {
+      setTopic(drillTopic);
+      localStorage.removeItem('lume-drill-topic');
+      // Set to 5 questions for a quick drill and auto-start
+      setQuestionCount(5);
+      handleGenerate(undefined, drillTopic);
+    }
+  }, []);
 
   const handleAnswer = (option: string) => {
     if (selectedAnswer) return; 
@@ -128,17 +145,15 @@ export default function QuizPage() {
         </Link>
       </header>
 
-      {/* COMPACT SIDE-BY-SIDE GENERATOR FORM */}
+      {/* GENERATOR FORM */}
       {!quiz && !isGenerating && (
         <motion.section 
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
           className="max-w-4xl mx-auto bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800"
         >
           <form onSubmit={handleGenerate} className="space-y-6">
-            
             <div className="grid grid-cols-1 md:grid-cols-5 gap-6 items-stretch">
               
-              {/* Left Column: Length & Topic */}
               <div className="md:col-span-2 flex flex-col gap-6 justify-between">
                 <div className="space-y-3">
                   <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">Target Length</label>
@@ -172,21 +187,18 @@ export default function QuizPage() {
                 </div>
               </div>
 
-              {/* Middle Divider (Desktop) */}
               <div className="hidden md:flex flex-col items-center justify-center shrink-0">
                 <div className="w-px h-16 bg-slate-200 dark:bg-slate-800 rounded-full"></div>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest my-3">OR</span>
                 <div className="w-px h-16 bg-slate-200 dark:bg-slate-800 rounded-full"></div>
               </div>
 
-              {/* Middle Divider (Mobile) */}
               <div className="flex md:hidden items-center gap-4 py-2">
                 <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800"></div>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">OR</span>
                 <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800"></div>
               </div>
 
-              {/* Right Column: PDF Upload */}
               <div className="md:col-span-2 flex flex-col h-full">
                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-3">Source Material</label>
                 <label className="flex flex-col items-center justify-center w-full flex-1 min-h-[140px] p-6 bg-slate-50 dark:bg-slate-950 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 text-slate-600 dark:text-slate-300 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-600 cursor-pointer transition-all shadow-sm group">
@@ -212,7 +224,6 @@ export default function QuizPage() {
                   />
                 </label>
               </div>
-              
             </div>
 
             <motion.button
@@ -361,6 +372,7 @@ export default function QuizPage() {
                 setCurrentIndex(0);
                 setSelectedAnswer(null);
                 setFile(null); 
+                setTopic(''); // Reset topic
                 setUserAnswers([]);
               }}
               className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm"
