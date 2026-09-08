@@ -95,7 +95,7 @@ export default function RoadmapPage() {
 
       setSyllabus(formatted);
     } catch (err) {
-      alert('Could not generate syllabus. Check your connection or API key.');
+      alert('Could not generate syllabus. Please wait atleast 2 Mintues before trying again or Check your connection or API key.');
     } finally {
       setLoading(false);
     }

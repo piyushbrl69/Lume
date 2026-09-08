@@ -58,7 +58,7 @@ export default function QuizPage() {
       setIsFinished(false);
       setUserAnswers([]); 
     } catch (err) {
-      alert("Failed to generate quiz. Ensure your PDF is under 20MB and your API key is valid.");
+      alert("Failed to generate quiz. Please wait atleast 2 Mintues before trying again or Ensure your PDF is under 20MB and your API key is valid.");
     } finally {
       setIsGenerating(false);
     }
