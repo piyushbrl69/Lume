@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BrainCircuit, Upload, Sparkles, CheckCircle2, XCircle, RefreshCw, FileText, PieChart, Target, ArrowRight } from 'lucide-react';
+import { BrainCircuit, Upload, Sparkles, CheckCircle2, XCircle, RefreshCw, FileText, PieChart, Target, ArrowRight, Cpu } from 'lucide-react';
 
 type QuizQuestion = {
   question: string;
@@ -19,6 +19,8 @@ export default function QuizPage() {
   const [questionCount, setQuestionCount] = useState<number>(5); 
   
   const [isGenerating, setIsGenerating] = useState(false);
+  const [loadingText, setLoadingText] = useState('Initializing Gemini 3.7 Flash...');
+  const [modelUsed, setModelUsed] = useState<string>('Gemini 3.7 Flash');
   const [quiz, setQuiz] = useState<QuizQuestion[] | null>(null);
   
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -28,18 +30,28 @@ export default function QuizPage() {
   
   const [userAnswers, setUserAnswers] = useState<string[]>([]);
 
-  // --- NEW: Auto-Trigger Logic ---
-  // We modified handleGenerate to accept an optional overrideTopic
-  // so the useEffect can call it directly without a form click.
+  // Dynamic Loading Text to reflect the dual-engine backend behavior
+  useEffect(() => {
+    if (!isGenerating) return;
+    
+    setLoadingText('Connecting to Gemini 3.7 Flash...');
+    const t1 = setTimeout(() => setLoadingText('Analyzing context & structuring questions...'), 2000);
+    const t2 = setTimeout(() => setLoadingText('Server under load. Retrying Gemini API...'), 6000);
+    const t3 = setTimeout(() => setLoadingText('Failing over to Groq Llama-3-8B...'), 11000);
+    const t4 = setTimeout(() => setLoadingText('Finalizing fallback assessment...'), 14000);
+
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
+  }, [isGenerating]);
+
   const handleGenerate = async (e?: React.FormEvent, overrideTopic?: string) => {
     if (e) e.preventDefault();
     
     const activeTopic = overrideTopic !== undefined ? overrideTopic : topic;
-    
     if (!activeTopic.trim() && !file) return;
 
     setIsGenerating(true);
     setQuiz(null);
+    const startTime = Date.now();
 
     try {
       const formData = new FormData();
@@ -54,6 +66,12 @@ export default function QuizPage() {
 
       if (!res.ok) throw new Error('Generation failed');
       
+      // Infer the model used. If it took longer than 11 seconds, the backend fell back to Groq.
+      // (You can also update your backend to return res.headers.set('X-Model-Used', 'Groq') for exact tracking)
+      const elapsedSeconds = (Date.now() - startTime) / 1000;
+      const explicitHeader = res.headers.get('X-Model-Used');
+      setModelUsed(explicitHeader || (elapsedSeconds > 11 ? 'Groq Llama-3-8B' : 'Gemini 3.7 Flash'));
+      
       const data = await res.json();
       setQuiz(data);
       
@@ -63,19 +81,17 @@ export default function QuizPage() {
       setIsFinished(false);
       setUserAnswers([]); 
     } catch (err) {
-      alert("Failed to generate quiz. Ensure your PDF is under 20MB and your API key is valid.");
+      alert("Failed to generate quiz. Ensure your PDF is under 20MB and your API keys are valid.");
     } finally {
       setIsGenerating(false);
     }
   };
 
-  // Intercept the hand-off from the Analysis page and START immediately
   useEffect(() => {
     const drillTopic = localStorage.getItem('lume-drill-topic');
     if (drillTopic) {
       setTopic(drillTopic);
       localStorage.removeItem('lume-drill-topic');
-      // Set to 5 questions for a quick drill and auto-start
       setQuestionCount(5);
       handleGenerate(undefined, drillTopic);
     }
@@ -84,10 +100,7 @@ export default function QuizPage() {
   const handleAnswer = (option: string) => {
     if (selectedAnswer) return; 
     setSelectedAnswer(option);
-    
-    if (option === quiz![currentIndex].correctAnswer) {
-      setScore(prev => prev + 1);
-    }
+    if (option === quiz![currentIndex].correctAnswer) setScore(prev => prev + 1);
   };
 
   const nextQuestion = () => {
@@ -238,12 +251,16 @@ export default function QuizPage() {
         </motion.section>
       )}
 
-      {/* LOADING STATE */}
+      {/* DYNAMIC LOADING STATE */}
       {isGenerating && (
         <div className="max-w-2xl mx-auto py-32 text-center flex flex-col items-center">
+          <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-full mb-6 border border-slate-200 dark:border-slate-700 shadow-sm">
+            <Cpu size={14} className="text-indigo-500" />
+            <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Lume Dual-Engine Architecture</span>
+          </div>
           <RefreshCw size={48} className="text-indigo-500 animate-spin mb-6" />
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">Analyzing your material...</h2>
-          <p className="text-slate-500 font-medium">Gemini is crafting a custom {questionCount}-question assessment.</p>
+          <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">{loadingText}</h2>
+          <p className="text-slate-500 font-medium">Crafting a custom {questionCount}-question assessment.</p>
         </div>
       )}
 
@@ -254,12 +271,21 @@ export default function QuizPage() {
           className="max-w-3xl mx-auto bg-white dark:bg-slate-900 p-5 sm:p-8 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800"
         >
           <div className="flex justify-between items-center mb-5 pb-4 border-b border-slate-100 dark:border-slate-800">
-            <div className="flex items-center gap-2">
-              <Target className="text-slate-400" size={18} />
-              <span className="text-xs sm:text-sm font-bold text-slate-500 uppercase tracking-widest">
-                Question {currentIndex + 1} / {quiz.length}
-              </span>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Target className="text-slate-400" size={18} />
+                <span className="text-xs sm:text-sm font-bold text-slate-500 uppercase tracking-widest">
+                  Question {currentIndex + 1} / {quiz.length}
+                </span>
+              </div>
+              
+              {/* MODEL BADGE */}
+              <div className="hidden sm:flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 px-2.5 py-1 rounded text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+                <Cpu size={12} />
+                Powered by {modelUsed}
+              </div>
             </div>
+
             <div className="flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1.5 rounded-lg">
               <CheckCircle2 className="text-indigo-500" size={16} />
               <span className="text-xs sm:text-sm font-bold text-indigo-700 dark:text-indigo-400 uppercase tracking-wider">
@@ -338,9 +364,15 @@ export default function QuizPage() {
       {isFinished && quiz && (
         <motion.section 
           initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-          className="max-w-lg mx-auto bg-white dark:bg-slate-900 p-8 sm:p-10 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 text-center"
+          className="max-w-lg mx-auto bg-white dark:bg-slate-900 p-8 sm:p-10 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 text-center relative overflow-hidden"
         >
-          <div className="mb-6 relative w-32 h-32 mx-auto flex items-center justify-center">
+          {/* Subtle Model Badge on Results Screen */}
+          <div className="absolute top-4 left-4 flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/50 px-2.5 py-1 rounded-md text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+            <Cpu size={10} />
+            {modelUsed}
+          </div>
+
+          <div className="mb-6 relative w-32 h-32 mx-auto flex items-center justify-center mt-4">
             <svg className="w-full h-full transform -rotate-90 absolute inset-0">
               <circle cx="64" cy="64" r="60" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-100 dark:text-slate-800" />
               <circle 
@@ -372,7 +404,7 @@ export default function QuizPage() {
                 setCurrentIndex(0);
                 setSelectedAnswer(null);
                 setFile(null); 
-                setTopic(''); // Reset topic
+                setTopic(''); 
                 setUserAnswers([]);
               }}
               className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm"
