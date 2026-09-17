@@ -5,11 +5,11 @@ export async function POST(req: Request) {
     const formData = await req.formData();
     const topic = formData.get('topic') as string;
     const file = formData.get('file') as File | null;
-    const count = formData.get('count') as string || '5'; // Extract the requested count
+    const count = formData.get('count') as string || '5'; 
 
     const parts: any[] = [];
 
-    // 1. The Prompt (Now dynamic based on 'count')
+    // 1. The Prompt
     const prompt = `
       You are an expert educational AI. 
       Context/Topic: ${topic || "Generate a general knowledge quiz."}
@@ -28,25 +28,31 @@ export async function POST(req: Request) {
     `;
     parts.push({ text: prompt });
 
-    // 2. Attach the PDF if one was uploaded
+    // 2. Attach the PDF (FIXED: Changed to snake_case for Gemini API)
     if (file && file.type === 'application/pdf') {
       const arrayBuffer = await file.arrayBuffer();
       const base64 = Buffer.from(arrayBuffer).toString('base64');
       
       parts.push({
-        inlineData: {
-          mimeType: 'application/pdf',
+        inline_data: {
+          mime_type: 'application/pdf',
           data: base64
         }
       });
     }
 
-    // 3. Call Gemini 3.7 Flash
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+    // 3. Call Gemini (Using standard 1.5-flash model, plus safety settings to prevent false blocks)
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts }]
+        contents: [{ parts }],
+        safetySettings: [
+          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+        ],
       })
     });
 
@@ -57,8 +63,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: data.error.message }, { status: 500 });
     }
 
-    let rawText = data.candidates[0].content.parts[0].text;
+    let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
     
+    if (!rawText) {
+       throw new Error("Gemini returned an empty response.");
+    }
+
     // 4. Bulletproof JSON Extraction
     const startIndex = rawText.indexOf('[');
     const endIndex = rawText.lastIndexOf(']');
